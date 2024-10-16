@@ -12,6 +12,8 @@ dependencies:
   qr_code_scanner: ^1.0.1
   flutter_tesseract_ocr: ^0.4.26 # Utilisation de flutter_tesseract_ocr pour l'OCR
   image_picker: ^0.8.7+4 # Version valide pour image_picker
+  web3dart: ^2.3.0
+  http: ^0.13.6 # Gardé seulement cette version
 
 dev_dependencies:
   flutter_test:
