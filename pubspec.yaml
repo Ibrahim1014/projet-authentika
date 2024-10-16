@@ -1,0 +1,21 @@
+name: authentika
+description: A new Flutter project.
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=2.17.6 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  qr_code_scanner: ^1.0.1
+  flutter_tesseract_ocr: ^0.4.26 # Utilisation de flutter_tesseract_ocr pour l'OCR
+  image_picker: ^0.8.7+4 # Version valide pour image_picker
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
