@@ -14,7 +14,8 @@ dependencies:
   image_picker: ^0.8.7+4 # Version valide pour image_picker
   web3dart: ^2.3.0
   http: ^0.13.6 # Gardé seulement cette version
-
+  firebase_core: ^2.4.1
+  cloud_firestore: ^4.5.0  # Firebase Firestore pour la base de données
 dev_dependencies:
   flutter_test:
     sdk: flutter
