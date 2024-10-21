@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart'; // Firebase Core
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore
 import 'firebase_options.dart'; // Firebase options générées automatiquement
+import 'scan_diploma.dart'; // Importer la page pour scanner un diplôme
+import 'qr_code_scanner.dart'; // Importer la page pour scanner QR Code
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -117,8 +119,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               SizedBox(height: 20),
 
-              // Bouton Vérification manuelle
-              ElevatedButton(
+              // Bouton Vérification manuelle avec icône
+              ElevatedButton.icon(
                 onPressed: () {
                   showDialog(
                     context: context,
@@ -159,23 +161,48 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   );
                 },
-                child: Text('Vérification manuelle'),
+                icon: Icon(Icons.search), // Icône ajoutée
+                label: Text('Vérification manuelle'),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                ),
               ),
               SizedBox(height: 20),
 
-              // Autres boutons de fonctionnalités
-              ElevatedButton(
+// Bouton Scanner un diplôme avec icône et navigation vers la page ScanDiploma
+              ElevatedButton.icon(
                 onPressed: () {
-                  print('Scanner un diplôme');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            ScanDiploma()), // Naviguer vers la page ScanDiploma
+                  );
                 },
-                child: Text('Scanner un diplôme'),
+                icon: Icon(Icons.camera_alt),
+                label: Text('Scanner un diplôme'),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                ),
               ),
+
               SizedBox(height: 20),
-              ElevatedButton(
+
+// Bouton Vérification via QR Code avec icône et navigation vers la page QRCodeScanner
+              ElevatedButton.icon(
                 onPressed: () {
-                  print('Vérification via QR Code');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            QRCodeScanner()), // Naviguer vers la page QRCodeScanner
+                  );
                 },
-                child: Text('Vérification via QR Code'),
+                icon: Icon(Icons.qr_code),
+                label: Text('Vérification via QR Code'),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                ),
               ),
 
               SizedBox(height: 20),
@@ -184,15 +211,25 @@ class _HomeScreenState extends State<HomeScreen> {
               if (verificationResult != null)
                 Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    verificationResult!,
-                    style: TextStyle(
-                      fontSize: 20,
-                      color: isDiplomeValide
-                          ? Colors.green
-                          : Colors.red, // Rouge si non valide
+                  child: Card(
+                    color: isDiplomeValide
+                        ? Colors.green[50]
+                        : Colors
+                            .red[50], // Couleur de fond en fonction du résultat
+                    elevation: 4, // Ombre de la carte
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        verificationResult!,
+                        style: TextStyle(
+                          fontSize: 20,
+                          color: isDiplomeValide
+                              ? Colors.green
+                              : Colors.red, // Texte coloré
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                    textAlign: TextAlign.center,
                   ),
                 ),
             ],
