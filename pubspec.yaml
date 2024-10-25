@@ -16,9 +16,12 @@ dependencies:
   http: ^0.13.6 # Gardé seulement cette version
   firebase_core: ^2.4.1
   cloud_firestore: ^4.5.0  # Firebase Firestore pour la base de données
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/background.jpeg

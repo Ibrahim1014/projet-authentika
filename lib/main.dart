@@ -107,132 +107,146 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text('Authentika'),
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Text(
-                'Bienvenue sur Authentika',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 20),
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(
+                'assets/images/background.jpeg'), // Nom de votre image
+            fit: BoxFit
+                .fill, // Ajuste l'image pour remplir complètement le conteneur
+          ),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(
+                16.0), // Ajout de padding autour du contenu
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  'Bienvenue sur Authentika',
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white), // Couleur du texte modifiée
+                ),
+                SizedBox(height: 20),
 
-              // Bouton Vérification manuelle avec icône
-              ElevatedButton.icon(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: Text('Vérification manuelle'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            TextField(
-                              controller: etablissementController,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(),
-                                labelText: 'Nom de l\'établissement',
+                // Bouton Vérification manuelle avec icône
+                ElevatedButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: Text('Vérification manuelle'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              TextField(
+                                controller: etablissementController,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  labelText: 'Nom de l\'établissement',
+                                ),
                               ),
-                            ),
-                            SizedBox(height: 20),
-                            TextField(
-                              controller: diplomaController,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(),
-                                labelText: 'Numéro de diplôme',
+                              SizedBox(height: 20),
+                              TextField(
+                                controller: diplomaController,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  labelText: 'Numéro de diplôme',
+                                ),
                               ),
-                            ),
-                            SizedBox(height: 20),
-                            ElevatedButton(
-                              onPressed: () {
-                                verifyDiploma(diplomaController.text,
-                                    etablissementController.text);
-                                Navigator.of(context)
-                                    .pop(); // Ferme le dialogue après la soumission
-                              },
-                              child: Text('Vérifier'),
-                            ),
-                          ],
+                              SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: () {
+                                  verifyDiploma(diplomaController.text,
+                                      etablissementController.text);
+                                  Navigator.of(context)
+                                      .pop(); // Ferme le dialogue après la soumission
+                                },
+                                child: Text('Vérifier'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  icon: Icon(Icons.search), // Icône ajoutée
+                  label: Text('Vérification manuelle'),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                  ),
+                ),
+                SizedBox(height: 20),
+
+                // Bouton Scanner un diplôme avec icône et navigation vers la page ScanDiploma
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              ScanDiploma()), // Naviguer vers la page ScanDiploma
+                    );
+                  },
+                  icon: Icon(Icons.camera_alt),
+                  label: Text('Scanner un diplôme'),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                  ),
+                ),
+
+                SizedBox(height: 20),
+
+                // Bouton Vérification via QR Code avec icône et navigation vers la page QRCodeScanner
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              QRCodeScanner()), // Naviguer vers la page QRCodeScanner
+                    );
+                  },
+                  icon: Icon(Icons.qr_code),
+                  label: Text('Vérification via QR Code'),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                  ),
+                ),
+
+                SizedBox(height: 20),
+
+                // Affichage du résultat de la vérification
+                if (verificationResult != null)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Card(
+                      color: isDiplomeValide
+                          ? Colors.green[50]
+                          : Colors.red[
+                              50], // Couleur de fond en fonction du résultat
+                      elevation: 4, // Ombre de la carte
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          verificationResult!,
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: isDiplomeValide
+                                ? Colors.green
+                                : Colors.red, // Texte coloré
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                      );
-                    },
-                  );
-                },
-                icon: Icon(Icons.search), // Icône ajoutée
-                label: Text('Vérification manuelle'),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                ),
-              ),
-              SizedBox(height: 20),
-
-// Bouton Scanner un diplôme avec icône et navigation vers la page ScanDiploma
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            ScanDiploma()), // Naviguer vers la page ScanDiploma
-                  );
-                },
-                icon: Icon(Icons.camera_alt),
-                label: Text('Scanner un diplôme'),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                ),
-              ),
-
-              SizedBox(height: 20),
-
-// Bouton Vérification via QR Code avec icône et navigation vers la page QRCodeScanner
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            QRCodeScanner()), // Naviguer vers la page QRCodeScanner
-                  );
-                },
-                icon: Icon(Icons.qr_code),
-                label: Text('Vérification via QR Code'),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                ),
-              ),
-
-              SizedBox(height: 20),
-
-              // Affichage du résultat de la vérification
-              if (verificationResult != null)
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Card(
-                    color: isDiplomeValide
-                        ? Colors.green[50]
-                        : Colors
-                            .red[50], // Couleur de fond en fonction du résultat
-                    elevation: 4, // Ombre de la carte
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        verificationResult!,
-                        style: TextStyle(
-                          fontSize: 20,
-                          color: isDiplomeValide
-                              ? Colors.green
-                              : Colors.red, // Texte coloré
-                        ),
-                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
