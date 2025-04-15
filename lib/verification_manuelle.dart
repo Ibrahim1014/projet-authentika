@@ -9,52 +9,62 @@ class VerificationManuelle extends StatefulWidget {
 class _VerificationManuelleState extends State<VerificationManuelle> {
   TextEditingController diplomaController = TextEditingController();
   TextEditingController etablissementController = TextEditingController();
+  TextEditingController anneeController = TextEditingController();
   String? verificationResult;
+  Color resultColor = Colors.black;
 
-  // Fonction pour vérifier un diplôme
   Future<void> verifyDiploma(
-      String diplomaNumber, String etablissementNom) async {
+      String numero, String etablissement, String annee) async {
     try {
-      String etablissementNomLower = etablissementNom.trim().toLowerCase();
+      final nomEtablissement = etablissement.trim().toLowerCase();
+      final numeroDiplome = numero.trim().toLowerCase();
+      final anneeDiplome = annee.trim();
 
-      var filteredSnapshot = await FirebaseFirestore.instance
+      // Recherche de l’établissement
+      var etabSnapshot = await FirebaseFirestore.instance
           .collection('etablissements')
-          .where('nom', isEqualTo: etablissementNomLower)
+          .where('nom', isEqualTo: nomEtablissement)
           .get();
 
-      if (filteredSnapshot.docs.isEmpty) {
+      if (etabSnapshot.docs.isEmpty) {
         setState(() {
           verificationResult =
-              "Établissement non présent dans la base de données.";
+              "❌ L’établissement n’existe pas dans la base de données.";
+          resultColor = Colors.red;
+        });
+        return;
+      }
+
+      final etablissementId = etabSnapshot.docs.first.id;
+
+      // Recherche du diplôme
+      var diplomeSnapshot = await FirebaseFirestore.instance
+          .collection('diplomes')
+          .where('id_etablissement', isEqualTo: etablissementId)
+          .where('numero', isEqualTo: numeroDiplome)
+          .where('annee', isEqualTo: anneeDiplome)
+          .get();
+
+      if (diplomeSnapshot.docs.isEmpty) {
+        setState(() {
+          verificationResult =
+              "❌ Diplôme non trouvé pour cette année et cet établissement.";
+          resultColor = Colors.red;
         });
       } else {
-        var diplomeSnapshot = await FirebaseFirestore.instance
-            .collection('diplomes')
-            .where('id_etablissement',
-                isEqualTo: filteredSnapshot.docs.first.id)
-            .where('numero', isEqualTo: diplomaNumber)
-            .get();
-
-        if (diplomeSnapshot.docs.isEmpty) {
-          setState(() {
-            verificationResult =
-                "Diplôme non valide pour l'établissement ${filteredSnapshot.docs.first['nom']}.";
-          });
-        } else {
-          var diplomeData = diplomeSnapshot.docs.first.data();
-          String typeDiplome = diplomeData['type'] ?? 'Type inconnu';
-          String mention = diplomeData['mention'] ?? 'Aucune mention';
-
-          setState(() {
-            verificationResult =
-                "Diplôme valide pour ${diplomeData['nom']} (${diplomeData['annee']})\n"
-                "Type : $typeDiplome\nMention : $mention";
-          });
-        }
+        final data = diplomeSnapshot.docs.first.data();
+        setState(() {
+          verificationResult =
+              "✅ Diplôme valide pour ${data['nom']} (${data['annee']})\n"
+              "Type : ${data['type'] ?? 'Inconnu'}\n"
+              "Mention : ${data['mention'] ?? 'Non précisée'}";
+          resultColor = Colors.green;
+        });
       }
     } catch (e) {
       setState(() {
-        verificationResult = "Erreur lors de la vérification : $e";
+        verificationResult = "⚠️ Erreur lors de la vérification : $e";
+        resultColor = Colors.orange;
       });
     }
   }
@@ -63,46 +73,69 @@ class _VerificationManuelleState extends State<VerificationManuelle> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Vérification Manuelle'),
+        title: Text('Vérification manuelle'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: etablissementController,
-              decoration: InputDecoration(
-                labelText: 'Nom de l\'établissement',
-              ),
-            ),
-            SizedBox(height: 10),
-            TextField(
-              controller: diplomaController,
-              decoration: InputDecoration(
-                labelText: 'Numéro de diplôme',
-              ),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                verifyDiploma(
-                    diplomaController.text, etablissementController.text);
-              },
-              child: Text('Vérifier le diplôme'),
-            ),
-            SizedBox(height: 20),
-            if (verificationResult != null)
-              Text(
-                verificationResult!,
-                style: TextStyle(
-                  fontSize: 18,
-                  color: verificationResult!.contains("valide")
-                      ? Colors.green
-                      : Colors.red, // Rouge si "non valide", vert si "valide"
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              TextField(
+                controller: etablissementController,
+                decoration: InputDecoration(
+                  labelText: "Nom de l'établissement",
+                  border: OutlineInputBorder(),
                 ),
-                textAlign: TextAlign.center,
               ),
-          ],
+              SizedBox(height: 12),
+              TextField(
+                controller: diplomaController,
+                decoration: InputDecoration(
+                  labelText: "Numéro du diplôme",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 12),
+              TextField(
+                controller: anneeController,
+                decoration: InputDecoration(
+                  labelText: "Année du diplôme",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () {
+                  verifyDiploma(
+                    diplomaController.text,
+                    etablissementController.text,
+                    anneeController.text,
+                  );
+                },
+                icon: Icon(Icons.search),
+                label: Text("Vérifier"),
+              ),
+              SizedBox(height: 30),
+              if (verificationResult != null)
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: resultColor.withOpacity(0.1),
+                    border: Border.all(color: resultColor),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    verificationResult!,
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: resultColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
