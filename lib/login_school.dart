@@ -1,82 +1,65 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'school_dashboard.dart';
 
 class LoginSchoolScreen extends StatefulWidget {
-  const LoginSchoolScreen({super.key});
-
   @override
-  State<LoginSchoolScreen> createState() => _LoginSchoolScreenState();
+  _LoginSchoolScreenState createState() => _LoginSchoolScreenState();
 }
 
 class _LoginSchoolScreenState extends State<LoginSchoolScreen> {
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  String? _errorMessage;
 
-  bool isLoading = false;
-
-  void handleLogin() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    // Simulation d’une authentification (à relier à Firebase ensuite)
-    await Future.delayed(Duration(seconds: 2));
-
-    setState(() {
-      isLoading = false;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Connexion simulée réussie !'),
-      backgroundColor: Colors.green,
-    ));
-
-    // TODO : Rediriger vers le tableau de bord établissement ici
+  Future<void> loginSchool() async {
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => SchoolDashboardScreen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _errorMessage = e.message;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Connexion Établissement'),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(20),
+      appBar: AppBar(title: Text("Connexion Établissement")),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            Text(
-              'Se connecter à son espace établissement',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            TextField(
+              controller: _emailController,
+              decoration: InputDecoration(labelText: 'Email établissement'),
+            ),
+            SizedBox(height: 10),
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              decoration: InputDecoration(labelText: 'Mot de passe'),
             ),
             SizedBox(height: 20),
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(
-                labelText: 'Email de l\'administrateur',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
+            ElevatedButton(
+              onPressed: loginSchool,
+              child: Text("Se connecter"),
             ),
-            SizedBox(height: 15),
-            TextField(
-              controller: passwordController,
-              decoration: InputDecoration(
-                labelText: 'Mot de passe',
-                border: OutlineInputBorder(),
+            if (_errorMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(
+                  _errorMessage!,
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
-              obscureText: true,
-            ),
-            SizedBox(height: 30),
-            ElevatedButton.icon(
-              onPressed: isLoading ? null : handleLogin,
-              icon: Icon(Icons.login),
-              label: isLoading
-                  ? CircularProgressIndicator(color: Colors.white)
-                  : Text("Se connecter"),
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, 50),
-                textStyle: TextStyle(fontSize: 18),
-              ),
-            ),
           ],
         ),
       ),

@@ -14,8 +14,13 @@ dependencies:
   image_picker: ^0.8.7+4 # Version valide pour image_picker
   web3dart: ^2.3.0
   http: ^0.13.6 # Gardé seulement cette version
-  firebase_core: ^2.4.1
-  cloud_firestore: ^4.5.0  # Firebase Firestore pour la base de données
+  firebase_core: ^2.24.2
+  cloud_firestore: ^4.17.5  # Firebase Firestore pour la base de données
+  diacritic: ^0.1.3
+  firebase_auth: ^4.17.5
+  firebase_auth_web: 5.12.0
+  collection: ^1.17.1
+
 
 dev_dependencies:
   flutter_test:
@@ -25,3 +30,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/background.jpeg
+    - assets/images/light-1.png
+    - assets/images/light-2.png
+    - assets/images/clock.png

@@ -1,89 +1,65 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'school_dashboard.dart';
 
 class RegisterSchoolScreen extends StatefulWidget {
-  const RegisterSchoolScreen({super.key});
-
   @override
-  State<RegisterSchoolScreen> createState() => _RegisterSchoolScreenState();
+  _RegisterSchoolScreenState createState() => _RegisterSchoolScreenState();
 }
 
 class _RegisterSchoolScreenState extends State<RegisterSchoolScreen> {
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  String? _errorMessage;
 
-  bool isLoading = false;
-
-  void handleRegister() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    // Simuler un enregistrement (à remplacer par Firebase ou autre backend)
-    await Future.delayed(Duration(seconds: 2));
-
-    setState(() {
-      isLoading = false;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Inscription simulée réussie !'),
-      backgroundColor: Colors.green,
-    ));
+  Future<void> registerSchool() async {
+    try {
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => SchoolDashboardScreen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _errorMessage = e.message;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Inscription Établissement'),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(20),
+      appBar: AppBar(title: Text("Inscription Établissement")),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            Text(
-              'Créer un compte Établissement',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            TextField(
+              controller: _emailController,
+              decoration: InputDecoration(labelText: 'Email établissement'),
+            ),
+            SizedBox(height: 10),
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              decoration: InputDecoration(labelText: 'Mot de passe'),
             ),
             SizedBox(height: 20),
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(
-                labelText: 'Nom de l\'établissement',
-                border: OutlineInputBorder(),
-              ),
+            ElevatedButton(
+              onPressed: registerSchool,
+              child: Text("Créer le compte"),
             ),
-            SizedBox(height: 15),
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(
-                labelText: 'Email de l\'administrateur',
-                border: OutlineInputBorder(),
+            if (_errorMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(
+                  _errorMessage!,
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            SizedBox(height: 15),
-            TextField(
-              controller: passwordController,
-              decoration: InputDecoration(
-                labelText: 'Mot de passe',
-                border: OutlineInputBorder(),
-              ),
-              obscureText: true,
-            ),
-            SizedBox(height: 30),
-            ElevatedButton.icon(
-              onPressed: isLoading ? null : handleRegister,
-              icon: Icon(Icons.app_registration),
-              label: isLoading
-                  ? CircularProgressIndicator(color: Colors.white)
-                  : Text("S'inscrire"),
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, 50),
-                textStyle: TextStyle(fontSize: 18),
-              ),
-            ),
           ],
         ),
       ),

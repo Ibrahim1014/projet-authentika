@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:diacritic/diacritic.dart'; // Pour normaliser les accents
+import 'package:collection/collection.dart'; // Pour firstWhereOrNull
 
 class ManualInputScreen extends StatefulWidget {
   @override
@@ -7,73 +9,92 @@ class ManualInputScreen extends StatefulWidget {
 }
 
 class _ManualInputScreenState extends State<ManualInputScreen> {
+  final TextEditingController diplomaController = TextEditingController();
+  final TextEditingController etablissementController = TextEditingController();
   final TextEditingController nomController = TextEditingController();
   final TextEditingController anneeController = TextEditingController();
-  final TextEditingController etablissementController = TextEditingController();
-  final TextEditingController numeroDiplomeController = TextEditingController();
 
   String? verificationResult;
-  bool? isValid;
+  bool isDiplomeValide = false;
+
+  String normalize(String input) {
+    return removeDiacritics(input.trim().toLowerCase());
+  }
 
   Future<void> verifyDiploma() async {
-    final nom = nomController.text.trim().toLowerCase();
-    final annee = anneeController.text.trim();
-    final etablissement = etablissementController.text.trim().toLowerCase();
-    final numero = numeroDiplomeController.text.trim();
+    final String numero = normalize(diplomaController.text);
+    final String nomEtablissement = normalize(etablissementController.text);
+    final String nomDiplome = normalize(nomController.text);
+    final String annee = anneeController.text.trim();
 
-    setState(() {
-      verificationResult = null;
-      isValid = null;
-    });
+    if (numero.isEmpty ||
+        nomEtablissement.isEmpty ||
+        nomDiplome.isEmpty ||
+        annee.isEmpty) {
+      setState(() {
+        verificationResult =
+            "❌ Veuillez remplir tous les champs pour lancer la vérification.";
+        isDiplomeValide = false;
+      });
+      return;
+    }
 
     try {
-      // Vérifie l'existence de l'établissement
-      final etabSnapshot = await FirebaseFirestore.instance
-          .collection('etablissements')
-          .where('nom', isEqualTo: etablissement)
-          .get();
+      // 🔍 Recherche de l’établissement
+      final etabSnapshot =
+          await FirebaseFirestore.instance.collection('etablissements').get();
 
-      if (etabSnapshot.docs.isEmpty) {
+      final matchingEtab = etabSnapshot.docs.firstWhereOrNull(
+        (doc) => normalize(doc['nom']) == nomEtablissement,
+      );
+
+      if (matchingEtab == null) {
         setState(() {
-          isValid = false;
           verificationResult =
-              "Établissement non présent dans la base de données. Il sera prochainement ajouté.";
+              "❌ L’établissement '$nomEtablissement' n'existe pas encore dans la base de données.\n"
+              "✅ Grâce à votre requête, il sera ajouté dans les plus brefs délais.";
+          isDiplomeValide = false;
         });
         return;
       }
 
-      final etabId = etabSnapshot.docs.first.id;
+      final etablissementId = matchingEtab.id;
 
-      // Vérifie le diplôme avec tous les champs
+      // 🔍 Recherche du diplôme
       final diplomeSnapshot = await FirebaseFirestore.instance
           .collection('diplomes')
-          .where('id_etablissement', isEqualTo: etabId)
-          .where('numero', isEqualTo: numero)
-          .where('nom', isEqualTo: nom)
+          .where('id_etablissement', isEqualTo: etablissementId)
           .where('annee', isEqualTo: annee)
           .get();
 
-      if (diplomeSnapshot.docs.isEmpty) {
-        setState(() {
-          isValid = false;
-          verificationResult =
-              "Diplôme non trouvé avec les informations fournies.";
-        });
-      } else {
-        final data = diplomeSnapshot.docs.first.data();
-        final mention = data['mention'] ?? 'Aucune mention';
-        final type = data['type'] ?? 'Type inconnu';
+      final matchingDiplome = diplomeSnapshot.docs.firstWhereOrNull(
+        (doc) =>
+            normalize(doc['nom']) == nomDiplome &&
+            normalize(doc['numero']) == numero,
+      );
 
+      if (matchingDiplome == null) {
         setState(() {
-          isValid = true;
           verificationResult =
-              "✅ Diplôme valide !\n\nNom : ${data['nom']}\nAnnée : ${data['annee']}\nType : $type\nMention : $mention";
+              "⚠️ Diplôme non trouvé avec les informations fournies pour l'année $annee.\n"
+              "Merci de vérifier que le nom, le numéro et l’établissement sont corrects.";
+          isDiplomeValide = false;
         });
+        return;
       }
+
+      final data = matchingDiplome.data();
+      setState(() {
+        verificationResult =
+            "✅ Diplôme valide pour ${data['nom']} (${data['annee']})\n"
+            "📘 Type : ${data['type'] ?? 'Inconnu'}\n"
+            "🏅 Mention : ${data['mention'] ?? 'Non précisée'}";
+        isDiplomeValide = true;
+      });
     } catch (e) {
       setState(() {
-        isValid = false;
-        verificationResult = "Erreur lors de la vérification : $e";
+        verificationResult = "❌ Erreur lors de la vérification : $e";
+        isDiplomeValide = false;
       });
     }
   }
@@ -82,57 +103,57 @@ class _ManualInputScreenState extends State<ManualInputScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Vérification Manuelle")),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            _buildTextField("Nom du diplômé", nomController),
-            SizedBox(height: 12),
-            _buildTextField("Année d'obtention", anneeController),
-            SizedBox(height: 12),
-            _buildTextField("Établissement", etablissementController),
-            SizedBox(height: 12),
-            _buildTextField("Numéro du diplôme", numeroDiplomeController),
-            SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: verifyDiploma,
-              icon: Icon(Icons.search),
-              label: Text("Vérifier"),
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, 50),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              _buildTextField(
+                  etablissementController, "Nom de l’établissement"),
+              _buildTextField(nomController, "Nom du diplômé"),
+              _buildTextField(diplomaController, "Numéro du diplôme"),
+              _buildTextField(anneeController, "Année d'obtention"),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                icon: Icon(Icons.search),
+                label: Text("Vérifier"),
+                onPressed: verifyDiploma,
               ),
-            ),
-            SizedBox(height: 20),
-            if (verificationResult != null)
-              Card(
-                color: isValid == true ? Colors.green[50] : Colors.red[50],
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    verificationResult!,
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: isValid == true ? Colors.green : Colors.red,
+              const SizedBox(height: 20),
+              if (verificationResult != null)
+                Card(
+                  color: isDiplomeValide ? Colors.green[50] : Colors.red[50],
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      verificationResult!,
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: isDiplomeValide ? Colors.green : Colors.red,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                ),
-              ),
-          ],
+                )
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(),
-        filled: true,
-        fillColor: Colors.white,
+  Widget _buildTextField(TextEditingController controller, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+          filled: true,
+          fillColor: Colors.white,
+        ),
       ),
     );
   }
