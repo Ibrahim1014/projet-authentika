@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:authentika/scan_diploma.dart';
 import 'package:authentika/qr_code_scanner.dart';
 import 'package:authentika/manual_input_screen.dart';
-// Ces deux pages seront créées après :
 import 'package:authentika/register_school.dart';
 import 'package:authentika/login_school.dart';
+
+// ✅ NOUVEL ÉCRAN OCR
+import 'package:authentika/screens/verification/verify_image_ocr_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -16,7 +18,7 @@ class WelcomeScreen extends StatelessWidget {
         children: [
           // Arrière-plan stylisé
           Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage('assets/images/background.jpeg'),
                 fit: BoxFit.cover,
@@ -24,9 +26,8 @@ class WelcomeScreen extends StatelessWidget {
             ),
           ),
           // Filtre foncé pour effet premium
-          Container(
-            color: Colors.black.withOpacity(0.6),
-          ),
+          Container(color: Colors.black.withOpacity(0.6)),
+
           // Contenu principal
           Center(
             child: Padding(
@@ -34,7 +35,7 @@ class WelcomeScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
+                  const Text(
                     "AUTHENTIKA",
                     style: TextStyle(
                       fontSize: 38,
@@ -43,7 +44,7 @@ class WelcomeScreen extends StatelessWidget {
                       letterSpacing: 2,
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Text(
                     "La révolution numérique de l'authentification des diplômes",
                     style: TextStyle(
@@ -52,7 +53,7 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 40),
+                  const SizedBox(height: 40),
 
                   // === BOUTONS STYLISÉS ===
                   _buildPremiumButton(
@@ -80,6 +81,20 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                   _buildPremiumButton(
                     context,
+                    label: "📷 Vérifier depuis une image",
+                    icon: Icons.image_search,
+                    color: Colors.tealAccent,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const VerifyImageOCRScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildPremiumButton(
+                    context,
                     label: "Vérification via QR Code",
                     icon: Icons.qr_code_scanner,
                     onPressed: () {
@@ -90,11 +105,11 @@ class WelcomeScreen extends StatelessWidget {
                       );
                     },
                   ),
-                  SizedBox(height: 20),
+
+                  const SizedBox(height: 20),
                   Divider(color: Colors.grey[600]),
 
-                  // === BOUTONS PARTENAIRE UNIVERSITÉ ===
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   _buildPremiumButton(
                     context,
                     label: "Connexion Établissement",
@@ -130,7 +145,6 @@ class WelcomeScreen extends StatelessWidget {
     );
   }
 
-  // === Fonction utilitaire pour styliser les boutons ===
   Widget _buildPremiumButton(BuildContext context,
       {required String label,
       required IconData icon,
@@ -142,12 +156,12 @@ class WelcomeScreen extends StatelessWidget {
         icon: Icon(icon, size: 22),
         label: Text(
           label,
-          style: TextStyle(fontSize: 18),
+          style: const TextStyle(fontSize: 18),
         ),
         style: ElevatedButton.styleFrom(
           foregroundColor: Colors.black,
           backgroundColor: color,
-          minimumSize: Size(double.infinity, 50),
+          minimumSize: const Size(double.infinity, 50),
           elevation: 8,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'school_dashboard.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:authentika/school/dashboard_school.dart';
 
 class RegisterSchoolScreen extends StatefulWidget {
   @override
@@ -10,18 +11,45 @@ class RegisterSchoolScreen extends StatefulWidget {
 class _RegisterSchoolScreenState extends State<RegisterSchoolScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _nomController = TextEditingController();
   String? _errorMessage;
 
   Future<void> registerSchool() async {
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => SchoolDashboardScreen()),
-      );
+
+      final user = userCredential.user;
+
+      if (user != null) {
+        // ✅ Ajout dans 'etablissements'
+        await FirebaseFirestore.instance
+            .collection('etablissements')
+            .doc()
+            .set({
+          'email': user.email,
+          'nom': _nomController.text.trim(),
+          'created_at': Timestamp.now(),
+        });
+
+        // ✅ Ajout dans 'users' pour gérer le rôle
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'email': user.email,
+          'role': 'school',
+        });
+
+        // ✅ Redirection vers le Dashboard de l'école
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DashboardSchool(user: user),
+          ),
+        );
+      }
     } on FirebaseAuthException catch (e) {
       setState(() {
         _errorMessage = e.message;
@@ -37,6 +65,11 @@ class _RegisterSchoolScreenState extends State<RegisterSchoolScreen> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
+            TextField(
+              controller: _nomController,
+              decoration: InputDecoration(labelText: "Nom de l’établissement"),
+            ),
+            SizedBox(height: 10),
             TextField(
               controller: _emailController,
               decoration: InputDecoration(labelText: 'Email établissement'),

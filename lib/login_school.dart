@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'school_dashboard.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:authentika/school/dashboard_school.dart';
+import 'package:authentika/admin/admin_dashboard.dart';
 
 class LoginSchoolScreen extends StatefulWidget {
   @override
@@ -13,18 +16,49 @@ class _LoginSchoolScreenState extends State<LoginSchoolScreen> {
   String? _errorMessage;
 
   Future<void> loginSchool() async {
+    setState(() => _errorMessage = null);
+
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => SchoolDashboardScreen()),
-      );
+
+      final user = credential.user;
+      if (user == null) throw Exception("Utilisateur introuvable");
+
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      final role = doc.data()?['role'];
+      if (role == null)
+        throw Exception("Aucun rôle défini pour cet utilisateur.");
+
+      if (role == 'admin') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => AdminDashboard(user: user)),
+        );
+      } else if (role == 'school') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => DashboardSchool(user: user)),
+        );
+      } else {
+        await FirebaseAuth.instance.signOut();
+        setState(() {
+          _errorMessage = "❌ Accès refusé : rôle non autorisé.";
+        });
+      }
     } on FirebaseAuthException catch (e) {
       setState(() {
-        _errorMessage = e.message;
+        _errorMessage = e.message ?? "Erreur de connexion.";
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = "❌ Erreur : $e";
       });
     }
   }
@@ -32,14 +66,14 @@ class _LoginSchoolScreenState extends State<LoginSchoolScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Connexion Établissement")),
+      appBar: AppBar(title: Text("Connexion Partenaire")),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             TextField(
               controller: _emailController,
-              decoration: InputDecoration(labelText: 'Email établissement'),
+              decoration: InputDecoration(labelText: 'Email'),
             ),
             SizedBox(height: 10),
             TextField(
