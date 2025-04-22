@@ -113,6 +113,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       previewRows = null;
       statusMessage = "✅ Import terminé : $success succès, $errors erreurs.";
     });
+
     await _loadStats();
   }
 
@@ -150,30 +151,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               Text("📤 Importation de Diplômes",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-              FutureBuilder<QuerySnapshot>(
-                future: FirebaseFirestore.instance
-                    .collection('etablissements')
-                    .orderBy('nom')
-                    .get(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return CircularProgressIndicator();
-                  final items = snapshot.data!.docs;
-                  return DropdownButton<String>(
-                    value: selectedEtablissementId,
-                    hint: const Text("Sélectionner un établissement"),
-                    isExpanded: true,
-                    onChanged: (val) =>
-                        setState(() => selectedEtablissementId = val),
-                    items: items.map((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      return DropdownMenuItem<String>(
-                        value: doc.id,
-                        child: Text(data['nom']),
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
+              _etablissementDropdown(),
               const SizedBox(height: 10),
               ElevatedButton.icon(
                 onPressed: _pickAndParseFile,
@@ -182,29 +160,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
               ),
               const SizedBox(height: 10),
-              if (previewRows != null) ...[
-                Text("🧾 Aperçu (${previewRows!.length} lignes)"),
-                const SizedBox(height: 10),
-                Container(
-                  height: 200,
-                  child: ListView(
-                    children: previewRows!
-                        .take(5)
-                        .map((row) => ListTile(
-                              title: Text(row['nom'] ?? ''),
-                              subtitle: Text(
-                                  "Numéro: ${row['numero'] ?? ''}, Année: ${row['annee'] ?? ''}"),
-                            ))
-                        .toList(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton.icon(
-                  onPressed: _importToFirestore,
-                  icon: Icon(Icons.cloud_upload),
-                  label: Text("Confirmer l'import"),
-                )
-              ],
+              if (previewRows != null) _previewWidget(),
               if (statusMessage != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 10),
@@ -221,36 +177,141 @@ class _AdminDashboardState extends State<AdminDashboard> {
               Text("📚 Liste des établissements",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-              FutureBuilder<QuerySnapshot>(
-                future: FirebaseFirestore.instance
-                    .collection('etablissements')
-                    .orderBy('nom')
-                    .get(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return CircularProgressIndicator();
-                  final etabs = snapshot.data!.docs;
-                  return Column(
-                    children: etabs.map((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      return Card(
-                        child: ListTile(
-                          title: Text(data['nom']),
-                          subtitle: Text(data['email']),
-                          trailing: TextButton(
-                            child: const Text("📄 Voir diplômes"),
-                            onPressed: () {
-                              _showDiplomesDialog(doc.id, data['nom']);
-                            },
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
+              _etablissementsList(),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _etablissementDropdown() {
+    return FutureBuilder<QuerySnapshot>(
+      future: FirebaseFirestore.instance
+          .collection('etablissements')
+          .orderBy('nom')
+          .get(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return CircularProgressIndicator();
+        final items = snapshot.data!.docs;
+        return DropdownButton<String>(
+          value: selectedEtablissementId,
+          hint: const Text("Sélectionner un établissement"),
+          isExpanded: true,
+          onChanged: (val) => setState(() => selectedEtablissementId = val),
+          items: items.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return DropdownMenuItem<String>(
+              value: doc.id,
+              child: Text(data['nom']),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _previewWidget() {
+    return Column(
+      children: [
+        Text("🧾 Aperçu (${previewRows!.length} lignes)"),
+        const SizedBox(height: 10),
+        Container(
+          height: 200,
+          child: ListView(
+            children: previewRows!
+                .take(5)
+                .map((row) => ListTile(
+                      title: Text(row['nom'] ?? ''),
+                      subtitle: Text(
+                          "Numéro: ${row['numero'] ?? ''}, Année: ${row['annee'] ?? ''}"),
+                    ))
+                .toList(),
+          ),
+        ),
+        const SizedBox(height: 10),
+        ElevatedButton.icon(
+          onPressed: _importToFirestore,
+          icon: Icon(Icons.cloud_upload),
+          label: Text("Confirmer l'import"),
+        )
+      ],
+    );
+  }
+
+  Widget _etablissementsList() {
+    return FutureBuilder<QuerySnapshot>(
+      future: FirebaseFirestore.instance
+          .collection('etablissements')
+          .orderBy('nom')
+          .get(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return CircularProgressIndicator();
+        final etabs = snapshot.data!.docs;
+        return Column(
+          children: etabs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return Card(
+              child: ListTile(
+                title: Text(data['nom']),
+                subtitle: Text(data['email']),
+                trailing: TextButton(
+                  child: const Text("📄 Voir diplômes"),
+                  onPressed: () {
+                    _showDiplomesDialog(doc.id, data['nom']);
+                  },
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  void _showDiplomesDialog(String etabId, String etabNom) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text("🎓 Diplômes - $etabNom"),
+        content: Container(
+          width: double.maxFinite,
+          height: 400,
+          child: FutureBuilder<QuerySnapshot>(
+            future: FirebaseFirestore.instance
+                .collection('diplomes')
+                .where('id_etablissement', isEqualTo: etabId)
+                .orderBy('created_at', descending: true)
+                .get(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Text("❌ Erreur : ${snapshot.error}");
+              }
+              if (!snapshot.hasData) return CircularProgressIndicator();
+
+              final dipl = snapshot.data!.docs;
+              if (dipl.isEmpty) return Text("Aucun diplôme trouvé.");
+
+              return ListView(
+                children: dipl.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>? ?? {};
+                  return ListTile(
+                    title: Text(data['nom'] ?? 'N/A'),
+                    subtitle: Text(
+                      "Numéro: ${data['numero'] ?? 'N/A'} - Année: ${data['annee'] ?? 'N/A'}",
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text("Fermer"),
+            onPressed: () => Navigator.pop(context),
+          )
+        ],
       ),
     );
   }
@@ -271,47 +332,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _showDiplomesDialog(String etabId, String etabNom) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text("🎓 Diplômes - $etabNom"),
-        content: Container(
-          width: double.maxFinite,
-          height: 400,
-          child: FutureBuilder<QuerySnapshot>(
-            future: FirebaseFirestore.instance
-                .collection('diplomes')
-                .where('id_etablissement', isEqualTo: etabId)
-                .orderBy('created_at', descending: true)
-                .get(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return CircularProgressIndicator();
-              final dipl = snapshot.data!.docs;
-              if (dipl.isEmpty) return Text("Aucun diplôme.");
-              return ListView(
-                children: dipl.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>? ?? {};
-                  return ListTile(
-                    title: Text(data['nom'] ?? 'N/A'),
-                    subtitle: Text(
-                        "Numéro: ${data['numero'] ?? 'N/A'} - ${data['annee'] ?? 'N/A'}"),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            child: const Text("Fermer"),
-            onPressed: () => Navigator.pop(context),
-          )
-        ],
       ),
     );
   }

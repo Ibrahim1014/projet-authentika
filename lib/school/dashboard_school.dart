@@ -296,7 +296,11 @@ class _DashboardSchoolState extends State<DashboardSchool> {
           .orderBy('created_at', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Text("❌ Erreur : ${snapshot.error}");
+        }
         if (!snapshot.hasData) return CircularProgressIndicator();
+
         final docs = snapshot.data!.docs;
         if (docs.isEmpty) return Text("Aucun diplôme trouvé.");
 
