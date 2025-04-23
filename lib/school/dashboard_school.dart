@@ -9,6 +9,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
 import 'package:excel/excel.dart';
 import 'package:diacritic/diacritic.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class DashboardSchool extends StatefulWidget {
   final User user;
@@ -265,6 +266,8 @@ class _DashboardSchoolState extends State<DashboardSchool> {
                               color: _statusMessage!.contains("✅")
                                   ? Colors.green
                                   : Colors.red)),
+                    _buildCharts(),
+                    const SizedBox(height: 30),
                     Divider(height: 30),
                     Text("📚 Historique des diplômes"),
                     const SizedBox(height: 10),
@@ -322,6 +325,96 @@ class _DashboardSchoolState extends State<DashboardSchool> {
           }).toList(),
         );
       },
+    );
+  }
+
+  Widget _buildCharts() {
+    return FutureBuilder<QuerySnapshot>(
+      future: FirebaseFirestore.instance
+          .collection('diplomes')
+          .where('id_etablissement', isEqualTo: _etabId)
+          .get(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return CircularProgressIndicator();
+
+        final data = snapshot.data!.docs.map((doc) {
+          final d = doc.data() as Map<String, dynamic>;
+          return {
+            'annee': d['annee'] ?? '',
+            'filiere': d['filiere'] ?? '',
+          };
+        }).toList();
+
+        final byAnnee = <String, int>{};
+        final byFiliere = <String, int>{};
+
+        for (final item in data) {
+          byAnnee[item['annee']] = (byAnnee[item['annee']] ?? 0) + 1;
+          byFiliere[item['filiere']] = (byFiliere[item['filiere']] ?? 0) + 1;
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("📊 Statistiques",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            _barChart(byAnnee, "Diplômes par année", Colors.blue),
+            const SizedBox(height: 20),
+            _barChart(byFiliere, "Diplômes par filière", Colors.green),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _barChart(Map<String, int> dataMap, String title, Color color) {
+    final spots = dataMap.entries.map((e) {
+      return BarChartGroupData(
+        x: dataMap.keys.toList().indexOf(e.key),
+        barRods: [
+          BarChartRodData(toY: e.value.toDouble(), color: color),
+        ],
+        showingTooltipIndicators: [0],
+      );
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 10),
+        Container(
+          height: 200,
+          padding: const EdgeInsets.all(8),
+          child: BarChart(
+            BarChartData(
+              alignment: BarChartAlignment.spaceAround,
+              titlesData: FlTitlesData(
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: true),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, meta) {
+                      final index = value.toInt();
+                      if (index < dataMap.length) {
+                        final key = dataMap.keys.elementAt(index);
+                        return Text(key, style: TextStyle(fontSize: 10));
+                      }
+                      return Text('');
+                    },
+                  ),
+                ),
+              ),
+              borderData: FlBorderData(show: false),
+              barGroups: spots,
+              gridData: FlGridData(show: false),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
