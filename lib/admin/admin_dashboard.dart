@@ -1,8 +1,5 @@
-// lib/admin/admin_dashboard.dart
-
 import 'dart:convert';
-import 'dart:html' as html show File;
-
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,22 +7,25 @@ import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
 import 'package:excel/excel.dart';
 import 'package:diacritic/diacritic.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class AdminDashboard extends StatefulWidget {
   final User user;
   const AdminDashboard({required this.user});
 
   @override
-  _AdminDashboardState createState() => _AdminDashboardState();
+  State<AdminDashboard> createState() => _AdminDashboardState();
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
   String? selectedEtablissementId;
   String? statusMessage;
   List<Map<String, dynamic>>? previewRows;
-
   int totalEtablissements = 0;
   int totalDiplomes = 0;
+
+  Map<String, int> diplomesParAnnee = {};
+  Map<String, int> diplomesParFiliere = {};
 
   @override
   void initState() {
@@ -37,9 +37,24 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final etabs =
         await FirebaseFirestore.instance.collection('etablissements').get();
     final dipl = await FirebaseFirestore.instance.collection('diplomes').get();
+
+    final parAnnee = <String, int>{};
+    final parFiliere = <String, int>{};
+
+    for (var doc in dipl.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final annee = data['annee'] ?? 'inconnue';
+      final filiere = data['filiere'] ?? 'autre';
+
+      parAnnee[annee] = (parAnnee[annee] ?? 0) + 1;
+      parFiliere[filiere] = (parFiliere[filiere] ?? 0) + 1;
+    }
+
     setState(() {
       totalEtablissements = etabs.docs.length;
       totalDiplomes = dipl.docs.length;
+      diplomesParAnnee = parAnnee;
+      diplomesParFiliere = parFiliere;
     });
   }
 
@@ -138,7 +153,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("👋 Bonjour ${widget.user.email}"),
+              Text("👋 Bonjour ${widget.user.email}",
+                  style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -148,15 +164,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ],
               ),
               const SizedBox(height: 30),
+              _buildChartsSection(),
+              const Divider(height: 40),
               Text("📤 Importation de Diplômes",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 10),
               _etablissementDropdown(),
               const SizedBox(height: 10),
               ElevatedButton.icon(
                 onPressed: _pickAndParseFile,
-                icon: Icon(Icons.upload_file),
-                label: Text("Importer CSV / Excel"),
+                icon: const Icon(Icons.upload_file),
+                label: const Text("Importer CSV / Excel"),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
               ),
               const SizedBox(height: 10),
@@ -175,13 +193,85 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
               const Divider(height: 40),
               Text("📚 Liste des établissements",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 10),
               _etablissementsList(),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildChartsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("📊 Statistiques des diplômes",
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 20),
+        _barChart("Diplômes par année", diplomesParAnnee, Colors.blue),
+        const SizedBox(height: 30),
+        _barChart("Diplômes par filière", diplomesParFiliere, Colors.green),
+      ],
+    );
+  }
+
+  Widget _barChart(String title, Map<String, int> data, Color color) {
+    final List<BarChartGroupData> barGroups = [];
+    int index = 0;
+    data.forEach((label, value) {
+      barGroups.add(BarChartGroupData(
+        x: index,
+        barRods: [
+          BarChartRodData(
+            toY: value.toDouble(),
+            color: color,
+            width: 16,
+            borderRadius: BorderRadius.circular(4),
+          )
+        ],
+      ));
+      index++;
+    });
+
+    final labels = data.keys.toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 10),
+        Container(
+          height: 250,
+          padding: const EdgeInsets.all(8),
+          child: BarChart(
+            BarChartData(
+              barGroups: barGroups,
+              titlesData: FlTitlesData(
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, meta) {
+                      final idx = value.toInt();
+                      return SideTitleWidget(
+                        axisSide: AxisSide.bottom,
+                        child: Text(
+                            idx >= 0 && idx < labels.length ? labels[idx] : ''),
+                      );
+                    },
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: true),
+                ),
+              ),
+              borderData: FlBorderData(show: false),
+              gridData: FlGridData(show: false),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -192,7 +282,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           .orderBy('nom')
           .get(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return CircularProgressIndicator();
+        if (!snapshot.hasData) return const CircularProgressIndicator();
         final items = snapshot.data!.docs;
         return DropdownButton<String>(
           value: selectedEtablissementId,
@@ -216,7 +306,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       children: [
         Text("🧾 Aperçu (${previewRows!.length} lignes)"),
         const SizedBox(height: 10),
-        Container(
+        SizedBox(
           height: 200,
           child: ListView(
             children: previewRows!
@@ -232,8 +322,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
         const SizedBox(height: 10),
         ElevatedButton.icon(
           onPressed: _importToFirestore,
-          icon: Icon(Icons.cloud_upload),
-          label: Text("Confirmer l'import"),
+          icon: const Icon(Icons.cloud_upload),
+          label: const Text("Confirmer l'import"),
         )
       ],
     );
@@ -246,7 +336,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           .orderBy('nom')
           .get(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return CircularProgressIndicator();
+        if (!snapshot.hasData) return const CircularProgressIndicator();
         final etabs = snapshot.data!.docs;
         return Column(
           children: etabs.map((doc) {
@@ -257,9 +347,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 subtitle: Text(data['email']),
                 trailing: TextButton(
                   child: const Text("📄 Voir diplômes"),
-                  onPressed: () {
-                    _showDiplomesDialog(doc.id, data['nom']);
-                  },
+                  onPressed: () => _showDiplomesDialog(doc.id, data['nom']),
                 ),
               ),
             );
@@ -274,7 +362,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       context: context,
       builder: (_) => AlertDialog(
         title: Text("🎓 Diplômes - $etabNom"),
-        content: Container(
+        content: SizedBox(
           width: double.maxFinite,
           height: 400,
           child: FutureBuilder<QuerySnapshot>(
@@ -284,13 +372,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 .orderBy('created_at', descending: true)
                 .get(),
             builder: (context, snapshot) {
-              if (snapshot.hasError) {
+              if (snapshot.hasError)
                 return Text("❌ Erreur : ${snapshot.error}");
-              }
-              if (!snapshot.hasData) return CircularProgressIndicator();
+              if (!snapshot.hasData) return const CircularProgressIndicator();
 
               final dipl = snapshot.data!.docs;
-              if (dipl.isEmpty) return Text("Aucun diplôme trouvé.");
+              if (dipl.isEmpty) return const Text("Aucun diplôme trouvé.");
 
               return ListView(
                 children: dipl.map((doc) {
@@ -298,8 +385,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   return ListTile(
                     title: Text(data['nom'] ?? 'N/A'),
                     subtitle: Text(
-                      "Numéro: ${data['numero'] ?? 'N/A'} - Année: ${data['annee'] ?? 'N/A'}",
-                    ),
+                        "Numéro: ${data['numero'] ?? 'N/A'} - Année: ${data['annee'] ?? 'N/A'}"),
                   );
                 }).toList(),
               );
@@ -326,9 +412,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
             children: [
               Text(title, style: const TextStyle(fontSize: 16)),
               const SizedBox(height: 10),
-              Text("$value",
-                  style: const TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.bold)),
+              Text(
+                "$value",
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),

@@ -24,7 +24,9 @@ dependencies:
   file_picker: ^6.1.1
   excel: ^2.1.0 # ✅ Ajout corrigé ici
   mobile_scanner: ^3.5.0
+  fl_chart: ^0.66.1
 
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
