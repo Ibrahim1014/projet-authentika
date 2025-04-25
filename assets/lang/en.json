@@ -1,0 +1,15 @@
+{
+    "welcome": "Welcome to Authentika",
+    "manual_check": "Manual verification",
+    "scan_diploma": "Scan a diploma",
+    "verify_qr": "QR Code verification",
+    "verify": "Verify",
+    "diploma_verified": "✅ Diploma verified!",
+    "diploma_not_found": "❌ Diploma not found.",
+    "institution_not_found": "⚠️ Institution not found.",
+    "name": "Diploma holder name",
+    "school": "Institution",
+    "number": "Diploma number",
+    "year": "Year of graduation"
+  }
+  

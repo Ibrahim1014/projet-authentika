@@ -1,0 +1,15 @@
+{
+    "welcome": "Bienvenue sur Authentika",
+    "manual_check": "Vérification manuelle",
+    "scan_diploma": "Scanner un diplôme",
+    "verify_qr": "Vérification via QR Code",
+    "verify": "Vérifier",
+    "diploma_verified": "✅ Diplôme validé !",
+    "diploma_not_found": "❌ Diplôme non trouvé.",
+    "institution_not_found": "⚠️ Établissement introuvable.",
+    "name": "Nom du diplômé",
+    "school": "Établissement",
+    "number": "Numéro de diplôme",
+    "year": "Année d'obtention"
+  }
+  
