@@ -1,0 +1,20 @@
+{
+  "app_title": "Authentika",
+  "welcome_subtitle": "The digital revolution for diploma authentication",
+  "manual_verification": "Manual Verification",
+  "scan_diploma": "Scan a Diploma",
+  "verify_from_image": "📷 Verify from image",
+  "verify_qr": "QR Code Verification",
+  "school_login": "School Login",
+  "school_register": "Register as Institution",
+  "select_language": "Select language",
+  "welcome_message": "Welcome to Authentika",
+  "establishment_not_found": "⚠️ Establishment not found.",
+  "diploma_not_found": "❌ Diploma not found.",
+  "diploma_validated": "✅ Diploma validated!",
+  "name": "Name",
+  "institution": "Institution",
+  "year": "Year",
+  "number": "Number",
+  "error_verification": "Error during verification"
+}

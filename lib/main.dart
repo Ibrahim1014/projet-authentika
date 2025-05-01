@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'localization/app_localizations.dart';
+import 'localization/custom_material_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'scan_diploma.dart';
 import 'qr_code_scanner.dart';
-import 'package:authentika/welcome_screen.dart';
+import 'screens/welcome_screen.dart'; // Correction du chemin d'import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,16 +20,45 @@ void main() async {
   runApp(MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  Locale _locale = const Locale('fr'); // langue par défaut
+
+  void _setLocale(Locale locale) {
+    setState(() {
+      _locale = locale;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Authentika',
+      debugShowCheckedModeBanner: false,
+      locale: _locale,
+      supportedLocales: const [
+        Locale('fr', ''),
+        Locale('en', ''),
+        Locale('ha', ''),
+      ],
+      localizationsDelegates: [
+        // Correction de la délégation des localisations
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        HaussaMaterialLocalizations.delegate,
+      ],
       theme: ThemeData(
         primarySwatch: Colors.blue,
         fontFamily: 'Arial',
       ),
-      home: WelcomeScreen(),
+      home: WelcomeScreen(
+          onLocaleChange: _setLocale), // passe la fonction de changement
     );
   }
 }

@@ -1,19 +1,53 @@
-import 'scan_diploma.dart';
-import 'qr_code_scanner.dart';
-import 'manual_input_screen.dart';
-import 'register_school.dart';
-import 'login_school.dart';
-import 'verification/verify_image_ocr_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:authentika/scan_diploma.dart';
+import 'package:authentika/qr_code_scanner.dart';
+import 'package:authentika/manual_input_screen.dart';
+import 'package:authentika/register_school.dart';
+import 'package:authentika/login_school.dart';
 
 // ✅ NOUVEL ÉCRAN OCR
 import 'package:authentika/screens/verification/verify_image_ocr_screen.dart';
+import 'package:authentika/localization/app_localizations.dart';
 
-class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key});
+class WelcomeScreen extends StatefulWidget {
+  // Ajout du paramètre onLocaleChange pour changer la langue
+  final Function(Locale) onLocaleChange;
+
+  const WelcomeScreen({super.key, required this.onLocaleChange});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  // Langue actuellement sélectionnée (fr par défaut)
+  String _selectedLanguage = 'fr';
+
+  // Liste des langues disponibles avec leurs drapeaux
+  final List<Map<String, dynamic>> _languages = [
+    {'code': 'fr', 'name': 'Français', 'flag': '🇫🇷'},
+    {'code': 'en', 'name': 'English', 'flag': '🇬🇧'},
+    {
+      'code': 'ha',
+      'name': 'Haoussa',
+      'flag': '🇳🇬'
+    }, // Correction de "Hausa" à "Haoussa"
+  ];
+
+  // Méthode pour changer la langue
+  void _changeLanguage(String languageCode) {
+    setState(() {
+      _selectedLanguage = languageCode;
+    });
+    // Appelle la fonction de changement de langue transmise par le parent
+    widget.onLocaleChange(Locale(languageCode));
+  }
 
   @override
   Widget build(BuildContext context) {
+    // S'assurer que AppLocalizations est disponible
+    final localizations = AppLocalizations.of(context);
+
     return Scaffold(
       body: Stack(
         children: [
@@ -30,15 +64,20 @@ class WelcomeScreen extends StatelessWidget {
           Container(color: Colors.black.withOpacity(0.6)),
 
           // Contenu principal
-          Center(
+          SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  // Ajout du sélecteur de langue en haut de l'écran
+                  _buildLanguageSelector(),
+
+                  const SizedBox(height: 40),
+
+                  Text(
                     "AUTHENTIKA",
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 38,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -47,7 +86,8 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    "La révolution numérique de l'authentification des diplômes",
+                    localizations?.translate('welcome_subtitle') ??
+                        "La révolution numérique de l'authentification des diplômes",
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey[300],
@@ -59,7 +99,8 @@ class WelcomeScreen extends StatelessWidget {
                   // === BOUTONS STYLISÉS ===
                   _buildPremiumButton(
                     context,
-                    label: "Vérification manuelle",
+                    label: localizations?.translate('manual_verification') ??
+                        "Vérification manuelle",
                     icon: Icons.search,
                     onPressed: () {
                       Navigator.push(
@@ -71,7 +112,8 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                   _buildPremiumButton(
                     context,
-                    label: "Scanner un diplôme",
+                    label: localizations?.translate('scan_diploma') ??
+                        "Scanner un diplôme",
                     icon: Icons.camera_alt,
                     onPressed: () {
                       Navigator.push(
@@ -82,7 +124,8 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                   _buildPremiumButton(
                     context,
-                    label: "📷 Vérifier depuis une image",
+                    label: localizations?.translate('verify_from_image') ??
+                        "📷 Vérifier depuis une image",
                     icon: Icons.image_search,
                     color: Colors.tealAccent,
                     onPressed: () {
@@ -96,7 +139,8 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                   _buildPremiumButton(
                     context,
-                    label: "Vérification via QR Code",
+                    label: localizations?.translate('verify_qr') ??
+                        "Vérification via QR Code",
                     icon: Icons.qr_code_scanner,
                     onPressed: () {
                       Navigator.push(
@@ -113,7 +157,8 @@ class WelcomeScreen extends StatelessWidget {
                   const SizedBox(height: 10),
                   _buildPremiumButton(
                     context,
-                    label: "Connexion Établissement",
+                    label: localizations?.translate('school_login') ??
+                        "Connexion Établissement",
                     icon: Icons.login,
                     color: Colors.orangeAccent,
                     onPressed: () {
@@ -126,7 +171,8 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                   _buildPremiumButton(
                     context,
-                    label: "S'inscrire en tant qu’établissement",
+                    label: localizations?.translate('school_register') ??
+                        "S'inscrire en tant qu'établissement",
                     icon: Icons.school,
                     color: Colors.greenAccent,
                     onPressed: () {
@@ -142,6 +188,79 @@ class WelcomeScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Widget pour le sélecteur de langue avec taille réduite
+  Widget _buildLanguageSelector() {
+    final localizations = AppLocalizations.of(context);
+
+    return Card(
+      margin: const EdgeInsets.only(top: 20), // Réduit l'espace vertical
+      color: Colors.white.withOpacity(0.9),
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: 12.0, vertical: 8.0), // Réduit le padding
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              localizations?.translate('select_language') ??
+                  "Sélectionner une langue",
+              style: const TextStyle(
+                fontSize: 14, // Taille réduite
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8), // Espace réduit
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: _languages.map((language) {
+                final bool isSelected = _selectedLanguage == language['code'];
+                return InkWell(
+                  onTap: () => _changeLanguage(language['code']),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8), // Padding réduit
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Colors.blue.shade100
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected ? Colors.blue : Colors.grey.shade300,
+                        width: 2,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          language['flag'],
+                          style: const TextStyle(fontSize: 20), // Icône réduite
+                        ),
+                        const SizedBox(height: 4), // Espace réduit
+                        Text(
+                          language['name'],
+                          style: TextStyle(
+                            fontSize: 12, // Texte réduit
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
       ),
     );
   }

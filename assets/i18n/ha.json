@@ -1,0 +1,20 @@
+{
+  "app_title": "Authentika",
+  "welcome_subtitle": "Juyin halitta na dijital don tabbatar da takardar shaida",
+  "manual_verification": "Tabbatarwa ta hannu",
+  "scan_diploma": "Duba Diploma",
+  "verify_from_image": "📷 Tabbatar daga hoto",
+  "verify_qr": "Tabbatarwa ta QR Code",
+  "school_login": "Shiga Makaranta",
+  "school_register": "Yi Rijista a Matsayin Makaranta",
+  "select_language": "Zaɓi harshe",
+  "welcome_message": "Barka da zuwa Authentika",
+  "establishment_not_found": "⚠️ Ba a sami makaranta ba.",
+  "diploma_not_found": "❌ Ba a sami diploma ba.",
+  "diploma_validated": "✅ An tabbatar da diploma!",
+  "name": "Suna",
+  "institution": "Makaranta",
+  "year": "Shekara",
+  "number": "Lamba",
+  "error_verification": "Kuskure yayin tabbatarwa"
+}

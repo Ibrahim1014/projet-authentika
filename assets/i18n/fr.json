@@ -1,0 +1,20 @@
+{
+  "app_title": "Authentika",
+  "welcome_subtitle": "La révolution numérique de l'authentification des diplômes",
+  "manual_verification": "Vérification manuelle",
+  "scan_diploma": "Scanner un diplôme",
+  "verify_from_image": "📷 Vérifier depuis une image",
+  "verify_qr": "Vérification via QR Code",
+  "school_login": "Connexion Établissement",
+  "school_register": "S'inscrire en tant qu'établissement",
+  "select_language": "Sélectionner une langue",
+  "welcome_message": "Bienvenue sur Authentika",
+  "verify": "Vérifier",
+  "diploma_verified": "✅ Diplôme validé !",
+  "diploma_not_found": "❌ Diplôme non trouvé.",
+  "institution_not_found": "⚠️ Établissement introuvable.",
+  "name": "Nom du diplômé",
+  "school": "Établissement",
+  "number": "Numéro de diplôme",
+  "year": "Année d'obtention"
+}
