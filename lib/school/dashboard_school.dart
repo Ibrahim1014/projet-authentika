@@ -1,7 +1,4 @@
-// lib/school/dashboard_school.dart
-
 import 'dart:convert';
-import 'dart:html' as html show File;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,6 +7,7 @@ import 'package:csv/csv.dart';
 import 'package:excel/excel.dart';
 import 'package:diacritic/diacritic.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:authentika/utils/file_import_utils.dart';
 
 class DashboardSchool extends StatefulWidget {
   final User user;
@@ -98,6 +96,7 @@ class _DashboardSchoolState extends State<DashboardSchool> {
     }
   }
 
+  // 2. Remplacez la méthode _pickAndPreviewFile() par celle-ci:
   Future<void> _pickAndPreviewFile() async {
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: false,
@@ -107,31 +106,53 @@ class _DashboardSchoolState extends State<DashboardSchool> {
 
     if (result == null || result.files.single.bytes == null) return;
 
-    final file = result.files.single;
-    List<List<dynamic>> rows = [];
+    setState(() {
+      _statusMessage = "🔄 Traitement du fichier en cours...";
+      _isSubmitting = true;
+    });
 
-    if (file.extension == 'csv') {
-      final content = utf8.decode(file.bytes!);
-      rows = const CsvToListConverter().convert(content);
-    } else if (file.extension == 'xlsx') {
-      final excel = Excel.decodeBytes(file.bytes!);
-      final sheet = excel.tables[excel.tables.keys.first];
-      rows = sheet?.rows ?? [];
+    final file = result.files.single;
+
+    // Configuration pour l'importation
+    final config = ImportConfig(
+      skipHeaderRow: true,
+      trimValues: true,
+      autoDetectColumns: true,
+      requiredColumns: ['nom', 'numero'],
+    );
+
+    ImportResult importResult;
+    try {
+      importResult = parseFile(file.bytes!, file.name, config);
+    } catch (e) {
+      setState(() {
+        _statusMessage = "❌ Erreur lors de l'importation: ${e.toString()}";
+        _isSubmitting = false;
+      });
+      return;
     }
 
-    if (rows.length < 2) return;
+    if (importResult.successRecords.isEmpty) {
+      String errorMsg = "❌ L'importation a échoué: ";
+      if (importResult.errors.isNotEmpty) {
+        errorMsg += importResult.errors.first.errorMessage;
+      } else {
+        errorMsg += "Aucun enregistrement valide trouvé";
+      }
 
-    final headers = rows.first.map((e) => e.toString().toLowerCase()).toList();
-    final body = rows.sublist(1);
+      setState(() {
+        _statusMessage = errorMsg;
+        _isSubmitting = false;
+      });
+      return;
+    }
 
+    // Prévisualisation pour confirmation
     setState(() {
-      previewRows = body.map((row) {
-        final map = <String, dynamic>{};
-        for (int i = 0; i < headers.length && i < row.length; i++) {
-          map[headers[i]] = row[i]?.toString() ?? '';
-        }
-        return map;
-      }).toList();
+      previewRows = importResult.successRecords;
+      _statusMessage =
+          "✅ Fichier analysé avec succès. ${previewRows!.length} diplômes prêts à être importés.";
+      _isSubmitting = false;
     });
   }
 
@@ -170,6 +191,11 @@ class _DashboardSchoolState extends State<DashboardSchool> {
     });
   }
 
+/*************  ✨ Windsurf Command ⭐  *************/
+  /// Supprime le diplôme avec l'ID donné et affiche un message de confirmation à l'utilisateur.
+  ///
+  /// [id] est l'ID du diplôme à supprimer.
+/*******  068aaa31-14de-470b-b7ac-1dbf4a2c9e47  *******/
   Future<void> _supprimerDiplome(String id) async {
     await FirebaseFirestore.instance.collection('diplomes').doc(id).delete();
     ScaffoldMessenger.of(context).showSnackBar(
