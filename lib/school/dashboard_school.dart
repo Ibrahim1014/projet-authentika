@@ -8,6 +8,7 @@ import 'package:excel/excel.dart';
 import 'package:diacritic/diacritic.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:authentika/utils/file_import_utils.dart';
+import 'dart:typed_data';
 
 class DashboardSchool extends StatefulWidget {
   final User user;
@@ -121,9 +122,10 @@ class _DashboardSchoolState extends State<DashboardSchool> {
       requiredColumns: ['nom', 'numero'],
     );
 
+    // Bloc de code à remplacer dans _pickAndPreviewFile():
     ImportResult importResult;
     try {
-      importResult = parseFile(file.bytes!, file.name, config);
+      importResult = await parseFile(file.bytes!, file.name, config);
     } catch (e) {
       setState(() {
         _statusMessage = "❌ Erreur lors de l'importation: ${e.toString()}";
@@ -154,6 +156,30 @@ class _DashboardSchoolState extends State<DashboardSchool> {
           "✅ Fichier analysé avec succès. ${previewRows!.length} diplômes prêts à être importés.";
       _isSubmitting = false;
     });
+  }
+
+  Future<ImportResult> parseFile(
+      Uint8List bytes, String fileName, ImportConfig config) async {
+    if (fileName.toLowerCase().endsWith('.xlsx') ||
+        fileName.toLowerCase().endsWith('.xls')) {
+      return await FileImportUtils.importExcelFile(bytes, config);
+    } else if (fileName.toLowerCase().endsWith('.csv')) {
+      return await FileImportUtils.importCsvFile(bytes, config);
+    } else {
+      return ImportResult(
+        successRecords: [],
+        errors: [
+          ImportError(
+            rowIndex: -1,
+            errorType: 'file_type_error',
+            errorMessage:
+                'Format de fichier non pris en charge: ${fileName.split('.').last}',
+          )
+        ],
+        stats: {'processed': 0, 'success': 0, 'error': 1},
+        detectedMapping: {},
+      );
+    }
   }
 
   Future<void> _importFromPreview() async {

@@ -1,4 +1,3 @@
-// lib/utils/file_import_utils.dart
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:excel/excel.dart';
@@ -95,6 +94,17 @@ class DataValidator {
           }
         }
         break;
+      case 'type':
+        if (value.isNotEmpty) {
+          // Validation optionnelle du type de diplôme
+          final typePattern = RegExp(
+              r'^(licence|master|doctorat|certificat|diplome|diplôme|brevet|baccalauréat|bac|dut|attestation|ingénieur|ingenieur).*$',
+              caseSensitive: false);
+          if (!typePattern.hasMatch(value) && strict) {
+            return 'Format de type de diplôme invalide pour $field: $value';
+          }
+        }
+        break;
     }
     return '';
   }
@@ -125,6 +135,8 @@ String normalizeText(String text) {
 bool areStringSimilar(String str1, String str2) {
   final norm1 = normalizeText(str1);
   final norm2 = normalizeText(str2);
+
+  if (norm1.isEmpty || norm2.isEmpty) return false;
 
   // Correspondance exacte après normalisation
   if (norm1 == norm2) return true;
@@ -160,7 +172,9 @@ Map<String, int> detectColumnMapping(
       'surname',
       'nomdefamille',
       'nomcomplet',
-      'nom complet'
+      'nom complet',
+      'family name',
+      'last name'
     ],
     'prenom': [
       'prenom',
@@ -170,7 +184,9 @@ Map<String, int> detectColumnMapping(
       'prenom(s)',
       'given name',
       'first name',
-      'givenname'
+      'givenname',
+      'first',
+      'prénoms'
     ],
     'date_naissance': [
       'date_naissance',
@@ -182,7 +198,8 @@ Map<String, int> detectColumnMapping(
       'datedenaissance',
       'datenaissance',
       'né le',
-      'naissance'
+      'naissance',
+      'date of birth'
     ],
     'sexe': ['sexe', 'gender', 'sex', 'genre'],
     'matricule': [
@@ -192,7 +209,9 @@ Map<String, int> detectColumnMapping(
       'code etudiant',
       'code étudiant',
       'numero etudiant',
-      'numéro étudiant'
+      'numéro étudiant',
+      'student id',
+      'student number'
     ],
     'numero': [
       'numero',
@@ -213,7 +232,14 @@ Map<String, int> detectColumnMapping(
       'num diplome',
       'num du diplome',
       'num diplôme',
-      'num du diplôme'
+      'num du diplôme',
+      'code diplôme',
+      'code diplome',
+      'code du diplôme',
+      'code du diplome',
+      'reference diplome',
+      'référence diplôme',
+      'ref diplome'
     ],
     'date_obtention': [
       'date_obtention',
@@ -230,7 +256,10 @@ Map<String, int> detectColumnMapping(
       'date de diplome',
       'date de délivrance',
       'date délivrance',
-      'datedelivrance'
+      'datedelivrance',
+      'date d\'obtention',
+      'date attribution',
+      'date d\'attribution'
     ],
     'annee': [
       'annee',
@@ -246,7 +275,11 @@ Map<String, int> detectColumnMapping(
       'anneescolaire',
       'année scolaire',
       'annee scolaire',
-      'session'
+      'session',
+      'academic year',
+      'graduation year',
+      'année académique',
+      'annee academique'
     ],
     'type': [
       'type',
@@ -260,7 +293,20 @@ Map<String, int> detectColumnMapping(
       'typedediplome',
       'grade',
       'niveau',
-      'level'
+      'level',
+      'degree',
+      'degree type',
+      'certification',
+      'certificat',
+      'licence',
+      'master',
+      'doctorat',
+      'formation',
+      'title',
+      'titre',
+      'categorie',
+      'catégorie',
+      'category'
     ],
     'mention': [
       'mention',
@@ -272,7 +318,12 @@ Map<String, int> detectColumnMapping(
       'resultat',
       'résultat',
       'appreciation',
-      'appréciation'
+      'appréciation',
+      'honors',
+      'merit',
+      'avec mention',
+      'avec les félicitations',
+      'class of degree'
     ],
     'filiere': [
       'filiere',
@@ -289,7 +340,32 @@ Map<String, int> detectColumnMapping(
       'discipline',
       'section',
       'branche',
-      'option'
+      'option',
+      'parcours',
+      'parcour',
+      'program',
+      'programme',
+      'study program',
+      'field of study',
+      'subject',
+      'concentration'
+    ],
+    'domaine': [
+      'domaine',
+      'domain',
+      'field',
+      'secteur',
+      'sector',
+      'area',
+      'thematic',
+      'thématique',
+      'champ',
+      'champ disciplinaire',
+      'area of study',
+      'famille',
+      'group',
+      'groupe',
+      'famille professionnelle'
     ],
     'etablissement': [
       'etablissement',
@@ -308,7 +384,14 @@ Map<String, int> detectColumnMapping(
       'centre',
       'center',
       'campus',
-      'organisme'
+      'organisme',
+      'institution',
+      'academy',
+      'académie',
+      'academie',
+      'org',
+      'organization',
+      'organisation'
     ],
     'departement': [
       'departement',
@@ -317,7 +400,9 @@ Map<String, int> detectColumnMapping(
       'division',
       'service',
       'unit',
-      'unité'
+      'unité',
+      'faculty',
+      'faculté'
     ]
   };
 
@@ -331,6 +416,7 @@ Map<String, int> detectColumnMapping(
     // Première approche: recherche exacte après normalisation
     for (int i = 0; i < headers.length; i++) {
       final headerNorm = normalizeText(headers[i]);
+      if (headerNorm.isEmpty) continue;
 
       // Chercher pour chaque champ s'il y a correspondance
       fieldMappings.forEach((field, possibleHeaders) {
@@ -366,6 +452,7 @@ Map<String, int> detectColumnMapping(
       if (!mapping.containsKey(field)) {
         for (int i = 0; i < headers.length; i++) {
           final headerNorm = normalizeText(headers[i]);
+          if (headerNorm.isEmpty) continue;
 
           // Pour les champs spécifiques, chercher des mots-clés
           switch (field) {
@@ -377,14 +464,16 @@ Map<String, int> detectColumnMapping(
               }
               break;
             case 'nom':
-              if (headerNorm.contains('nom') &&
-                  !headerNorm.contains('prenom')) {
+              if ((headerNorm.contains('nom') || headerNorm.contains('name')) &&
+                  !headerNorm.contains('prenom') &&
+                  !headerNorm.contains('first')) {
                 mapping[field] = i;
               }
               break;
             case 'prenom':
               if (headerNorm.contains('prenom') ||
-                  headerNorm.contains('first')) {
+                  headerNorm.contains('first') ||
+                  headerNorm.contains('given')) {
                 mapping[field] = i;
               }
               break;
@@ -397,21 +486,31 @@ Map<String, int> detectColumnMapping(
             case 'etablissement':
               if (headerNorm.contains('etabl') ||
                   headerNorm.contains('ecole') ||
-                  headerNorm.contains('univ')) {
+                  headerNorm.contains('univ') ||
+                  headerNorm.contains('instit')) {
                 mapping[field] = i;
               }
               break;
             case 'filiere':
               if (headerNorm.contains('fili') ||
                   headerNorm.contains('spec') ||
-                  headerNorm.contains('option')) {
+                  headerNorm.contains('option') ||
+                  headerNorm.contains('parcours')) {
+                mapping[field] = i;
+              }
+              break;
+            case 'domaine':
+              if (headerNorm.contains('domain') ||
+                  headerNorm.contains('champ') ||
+                  headerNorm.contains('area')) {
                 mapping[field] = i;
               }
               break;
             case 'annee':
               if (headerNorm.contains('annee') ||
                   headerNorm.contains('obtention') ||
-                  headerNorm.contains('year')) {
+                  headerNorm.contains('year') ||
+                  headerNorm.contains('session')) {
                 mapping[field] = i;
               }
               break;
@@ -423,7 +522,18 @@ Map<String, int> detectColumnMapping(
               break;
             case 'mention':
               if (headerNorm.contains('mention') ||
-                  headerNorm.contains('distinction')) {
+                  headerNorm.contains('distinction') ||
+                  headerNorm.contains('honors')) {
+                mapping[field] = i;
+              }
+              break;
+            case 'type':
+              if (headerNorm.contains('type') ||
+                  headerNorm.contains('diplome') ||
+                  headerNorm.contains('degree') ||
+                  headerNorm.contains('qualification') ||
+                  headerNorm.contains('certification') ||
+                  headerNorm.contains('niveau')) {
                 mapping[field] = i;
               }
               break;
@@ -434,45 +544,7 @@ Map<String, int> detectColumnMapping(
 
     // Quatrième approche: analyse des données pour détecter le contenu
     if (rows.length > 1) {
-      final secondRow =
-          rows[1].map((cell) => cell?.toString().trim() ?? '').toList();
-
-      // Vérifier des patterns typiques dans les données pour identifier les colonnes
-      for (int i = 0; i < secondRow.length; i++) {
-        final cellValue = secondRow[i];
-
-        // Si on n'a pas trouvé de colonne numéro, chercher des formats typiques
-        if (!mapping.containsKey('numero') &&
-            RegExp(r'^[A-Z0-9]{4,}[-/]?[A-Z0-9]*$').hasMatch(cellValue)) {
-          mapping['numero'] = i;
-        }
-
-        // Si on n'a pas trouvé de date d'obtention, chercher des formats de date
-        if (!mapping.containsKey('date_obtention') &&
-            RegExp(r'^(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{4}[/.-]\d{1,2}[/.-]\d{1,2})$')
-                .hasMatch(cellValue)) {
-          // Si date_naissance est déjà mappé sur une autre colonne, on met celle-ci en date_obtention
-          if (!mapping.containsKey('date_obtention') &&
-              (!mapping.containsKey('date_naissance') ||
-                  mapping['date_naissance'] != i)) {
-            mapping['date_obtention'] = i;
-          }
-        }
-
-        // Si on n'a pas trouvé d'année, chercher des formats d'année
-        if (!mapping.containsKey('annee') &&
-            RegExp(r'^(19|20)\d{2}([/-]\d{2,4})?$').hasMatch(cellValue)) {
-          mapping['annee'] = i;
-        }
-
-        // Si on n'a pas trouvé de mention, chercher des mentions typiques
-        if (!mapping.containsKey('mention') &&
-            RegExp(r'^(très bien|bien|assez bien|passable|excellent|a\.?b\.?|t\.?b\.?|excellent|honorable|distinction)$',
-                    caseSensitive: false)
-                .hasMatch(cellValue)) {
-          mapping['mention'] = i;
-        }
-      }
+      detectColumnsFromData(rows, mapping);
     }
   }
 
@@ -504,6 +576,10 @@ Map<String, int> detectColumnMapping(
         colIndex < rows.first.length &&
         !mapping.containsValue(colIndex))
       mapping['date_naissance'] = colIndex++;
+
+    if (!mapping.containsKey('type') &&
+        colIndex < rows.first.length &&
+        !mapping.containsValue(colIndex)) mapping['type'] = colIndex++;
 
     if (!mapping.containsKey('filiere') &&
         colIndex < rows.first.length &&
@@ -548,12 +624,13 @@ Map<String, int> detectColumnMapping(
       'numero',
       'prenom',
       'date_naissance',
+      'type',
       'etablissement',
       'filiere',
+      'domaine',
       'annee',
       'date_obtention',
       'mention',
-      'type',
       'departement',
       'sexe',
       'matricule'
@@ -593,744 +670,676 @@ Map<String, int> detectColumnMapping(
   return mapping;
 }
 
-// Version corrigée de la méthode d'importation CSV avancée
-ImportResult parseCsvAdvanced(String csvContent, [ImportConfig? config]) {
-  final cfg = config ?? ImportConfig();
-  final errors = <ImportError>[];
-  final stats = <String, int>{
-    'total': 0,
-    'skipped': 0,
-    'invalid': 0,
-    'processed': 0,
+// Nouvelle fonction pour analyser les données et détecter les colonnes par le contenu
+void detectColumnsFromData(List<List<dynamic>> rows, Map<String, int> mapping) {
+  // Analyser les 5 premières lignes de données (ou moins si le fichier est plus petit)
+  final dataRows = rows.length > 6 ? rows.sublist(1, 6) : rows.sublist(1);
+
+  if (dataRows.isEmpty) return;
+
+  // Expressions régulières pour détecter les différents types de contenu
+  final regexPatterns = {
+    'numero': RegExp(r'^[A-Z0-9]{4,}[-/]?[A-Z0-9]*$'),
+    'date_naissance': RegExp(
+        r'^(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{4}[/.-]\d{1,2}[/.-]\d{1,2})$'),
+    'date_obtention': RegExp(
+        r'^(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{4}[/.-]\d{1,2}[/.-]\d{1,2})$'),
+    'annee': RegExp(r'^(19|20)\d{2}([/-]\d{2,4})?$'),
+    'mention': RegExp(
+        r'^(très bien|bien|assez bien|passable|excellent|a\.?b\.?|t\.?b\.?|excellent|honorable|distinction)$',
+        caseSensitive: false),
+    'type': RegExp(
+        r'^(licence|master|doctorat|dea|dess|bts|dut|bac|brevet|certificat|attestation|ing[ée]nieur|dipl[ôo]me).*$',
+        caseSensitive: false),
+    'prenom': RegExp(r'^[A-Za-zÀ-ÿ\s\-]+$'),
+    'nom': RegExp(r'^[A-Za-zÀ-ÿ\s\-]+$'),
   };
 
-  try {
-    // Détection automatique du délimiteur
-    String? detectedDelimiter;
-    final sampleLines = csvContent.split('\n').take(5).join('\n');
-    final delimitersToTry = [',', ';', '\t', '|'];
-    int maxColumns = 0;
+  // Compteurs pour chaque type de contenu par colonne
+  final columnContentTypes = <int, Map<String, int>>{};
 
-    for (final delimiter in delimitersToTry) {
-      try {
-        final testConverter = CsvToListConverter(
-          fieldDelimiter: delimiter,
-          shouldParseNumbers: false,
-          eol: '\n',
-        );
-        final testRows = testConverter.convert(sampleLines);
-        if (testRows.isNotEmpty) {
-          int avgColumns =
-              testRows.fold<int>(0, (sum, row) => sum + row.length) ~/
-                  testRows.length;
-          if (avgColumns > maxColumns) {
-            maxColumns = avgColumns;
-            detectedDelimiter = delimiter;
-          }
+  // Initialiser les compteurs
+  for (int col = 0; col < rows.first.length; col++) {
+    columnContentTypes[col] = {};
+    for (final type in regexPatterns.keys) {
+      columnContentTypes[col]![type] = 0;
+    }
+  }
+
+  // Analyser le contenu de chaque cellule
+  for (final row in dataRows) {
+    for (int col = 0; col < row.length; col++) {
+      final cellValue = row[col]?.toString().trim() ?? '';
+      if (cellValue.isEmpty) continue;
+
+      // Vérifier chaque pattern
+      regexPatterns.forEach((type, pattern) {
+        if (pattern.hasMatch(cellValue)) {
+          columnContentTypes[col]![type] =
+              (columnContentTypes[col]![type] ?? 0) + 1;
         }
-      } catch (e) {
-        // Ignorer les erreurs pendant la détection
+      });
+
+      // Cas spécifiques supplémentaires
+
+      // Détection de type de diplôme par mots-clés
+      if (cellValue.length > 3) {
+        final lowerValue = cellValue.toLowerCase();
+        if (lowerValue.contains('licence') ||
+            lowerValue.contains('master') ||
+            lowerValue.contains('doctorat') ||
+            lowerValue.contains('certificat') ||
+            lowerValue.contains('brevet') ||
+            lowerValue.contains('bac') ||
+            lowerValue.contains('dut') ||
+            lowerValue.contains('bts') ||
+            lowerValue.contains('ingénieur') ||
+            lowerValue.contains('ingenieur')) {
+          columnContentTypes[col]!['type'] =
+              (columnContentTypes[col]!['type'] ?? 0) +
+                  2; // Plus de poids pour les mots-clés explicites
+        }
+      }
+    }
+  }
+
+  // Attribuer les colonnes en fonction des scores de détection
+  // Parcourir chaque type de contenu qu'on cherche à détecter
+  for (final fieldType in regexPatterns.keys) {
+    // Si ce type est déjà mappé, passer au suivant
+    if (mapping.containsKey(fieldType)) continue;
+
+    // Trouver la colonne avec le score le plus élevé pour ce type
+    int? bestColumnIndex;
+    int maxScore = 0;
+
+    for (int col = 0; col < rows.first.length; col++) {
+      // Ne considérer que les colonnes non encore mappées
+      if (mapping.containsValue(col)) continue;
+
+      final score = columnContentTypes[col]![fieldType] ?? 0;
+      if (score > maxScore) {
+        maxScore = score;
+        bestColumnIndex = col;
       }
     }
 
-    final delimiterToUse = detectedDelimiter ?? ',';
+    // Si on a trouvé une colonne avec un score significatif, l'attribuer
+    if (maxScore >= dataRows.length ~/ 3 && bestColumnIndex != null) {
+      // Au moins 1/3 des lignes correspondent
+      mapping[fieldType] = bestColumnIndex;
+    }
+  }
 
-    final converter = CsvToListConverter(
-      shouldParseNumbers: false,
-      fieldDelimiter: delimiterToUse,
-      eol: '\n',
-    );
+  // Cas spécial pour "prenom" et "nom" qui peuvent être difficiles à distinguer
+  // Si nous avons deux colonnes consécutives qui semblent contenir des noms
+  if (!mapping.containsKey('nom') || !mapping.containsKey('prenom')) {
+    for (int col = 0; col < rows.first.length - 1; col++) {
+      final col1Score = columnContentTypes[col]?['nom'] ?? 0;
+      final col2Score = columnContentTypes[col + 1]?['prenom'] ?? 0;
 
-    List<List<dynamic>> rows;
-    try {
-      rows = converter.convert(csvContent);
-      stats['total'] = rows.length;
-    } catch (e) {
-      // Tentative avec différents délimiteurs en cas d'échec
-      bool success = false;
-      rows = [];
-
-      for (final delimiter in delimitersToTry) {
-        if (delimiter == detectedDelimiter) continue;
-
-        try {
-          final fallbackConverter = CsvToListConverter(
-            shouldParseNumbers: false,
-            fieldDelimiter: delimiter,
-            eol: '\n',
-          );
-          rows = fallbackConverter.convert(csvContent);
-          stats['total'] = rows.length;
-          success = true;
+      // Si les deux colonnes consécutives contiennent principalement des noms
+      if (col1Score > dataRows.length / 2 && col2Score > dataRows.length / 2) {
+        // Vérifier si ces colonnes ne sont pas déjà mappées
+        if (!mapping.containsValue(col) && !mapping.containsValue(col + 1)) {
+          // Première colonne est généralement le nom de famille
+          mapping['nom'] = col;
+          mapping['prenom'] = col + 1;
           break;
-        } catch (ex) {
-          // Continuer avec le prochain délimiteur
         }
       }
-
-      if (!success) {
-        return ImportResult(
-          successRecords: [],
-          errors: [
-            ImportError(
-              rowIndex: -1,
-              errorType: 'parse_error',
-              errorMessage:
-                  'Impossible de parser le fichier CSV: ${e.toString()}',
-            )
-          ],
-          stats: {'total': 0, 'parse_error': 1},
-          detectedMapping: {},
-        );
-      }
     }
+  }
 
-    // Filtrer les lignes vides
-    rows = rows
-        .where((row) =>
-            row.isNotEmpty &&
-            row.any(
-                (cell) => cell != null && cell.toString().trim().isNotEmpty))
-        .toList();
+  // Si on n'a pas trouvé de numéro, chercher des formats typiques
+  if (!mapping.containsKey('numero')) {
+    for (int col = 0; col < rows.first.length; col++) {
+      if (mapping.containsValue(col)) continue;
 
-    // Auto-détection des colonnes
-    Map<String, int> effectiveMapping;
-    if (cfg.autoDetectColumns) {
-      effectiveMapping = detectColumnMapping(rows, cfg);
-      stats['detected_columns'] = effectiveMapping.length;
-    } else {
-      effectiveMapping = cfg.columnMapping ?? {};
-    }
+      // Vérifier si cette colonne contient des valeurs qui ressemblent à des numéros
+      int numericCount = 0;
+      int alphanumericCount = 0;
 
-    // Vérification des colonnes requises
-    final missingRequiredColumns = cfg.requiredColumns
-        .where((col) => !effectiveMapping.containsKey(col))
-        .toList();
-
-    if (missingRequiredColumns.isNotEmpty && !cfg.allowPartialData) {
-      errors.add(ImportError(
-        rowIndex: -1,
-        errorType: 'missing_required_columns',
-        errorMessage:
-            'Colonnes requises non trouvées: ${missingRequiredColumns.join(", ")}',
-      ));
-      return ImportResult(
-        successRecords: [],
-        errors: errors,
-        stats: {'total': rows.length, 'missing_columns': 1},
-        detectedMapping: effectiveMapping,
-      );
-    }
-
-    // Traitement des lignes
-    final dataRows = cfg.skipHeaderRow ? rows.skip(1) : rows;
-    stats['processed'] = dataRows.length;
-
-    final diplomas = <Map<String, dynamic>>[];
-
-    int rowIndex = cfg.skipHeaderRow ? 1 : 0;
-    for (final row in dataRows) {
-      try {
-        rowIndex++;
-        if (row.isEmpty) continue;
-
-        // Extraction des valeurs selon le mapping
-        final record = <String, dynamic>{};
-        bool hasValidationError = false;
-
-        effectiveMapping.forEach((field, index) {
-          try {
-            if (index < row.length) {
-              final rawValue = row[index]?.toString() ?? '';
-              final value = cfg.trimValues ? rawValue.trim() : rawValue;
-              record[field] = value;
-
-              // Validation
-              final bool isStrict = cfg.requiredColumns.contains(field);
-              final validationError = DataValidator.validateDataType(
-                  field, value,
-                  strict: isStrict);
-
-              if (validationError.isNotEmpty) {
-                errors.add(ImportError(
-                  rowIndex: rowIndex,
-                  errorType: 'validation_error',
-                  errorMessage: validationError,
-                  rawData: row.map((c) => c?.toString()).toList(),
-                ));
-                hasValidationError = true;
-              }
-            } else if (cfg.requiredColumns.contains(field) &&
-                !cfg.allowPartialData) {
-              errors.add(ImportError(
-                rowIndex: rowIndex,
-                errorType: 'required_field_missing',
-                errorMessage: 'Colonne requise hors limite: $field',
-                rawData: row.map((c) => c?.toString()).toList(),
-              ));
-              hasValidationError = true;
-            }
-          } catch (e) {
-            errors.add(ImportError(
-              rowIndex: rowIndex,
-              errorType: 'cell_processing_error',
-              errorMessage:
-                  'Erreur de traitement de cellule pour $field: ${e.toString()}',
-              rawData: row.map((c) => c?.toString()).toList(),
-            ));
-            hasValidationError = true;
+      for (final row in dataRows) {
+        if (col < row.length) {
+          final value = row[col]?.toString().trim() ?? '';
+          if (RegExp(r'^\d+$').hasMatch(value)) {
+            numericCount++;
+          } else if (RegExp(r'^[A-Z0-9-/]+$', caseSensitive: false)
+              .hasMatch(value)) {
+            alphanumericCount++;
           }
-        });
-
-        if (hasValidationError && !cfg.allowPartialData) {
-          stats['invalid'] = (stats['invalid'] ?? 0) + 1;
-          continue;
         }
+      }
 
-        // Ajout des champs calculés et timestamps
-        record['created_at'] = Timestamp.now();
-        record['nom_normalized'] = normalizeText(record['nom'] ?? '');
-        record['numero_normalized'] = normalizeText(record['numero'] ?? '');
-
-        diplomas.add(record);
-      } catch (e) {
-        errors.add(ImportError(
-          rowIndex: rowIndex,
-          errorType: 'processing_error',
-          errorMessage: 'Erreur de traitement: ${e.toString()}',
-          rawData: row.map((c) => c?.toString()).toList(),
-        ));
-        stats['invalid'] = (stats['invalid'] ?? 0) + 1;
+      if ((numericCount + alphanumericCount) > dataRows.length / 2) {
+        mapping['numero'] = col;
+        break;
       }
     }
+  }
 
-    stats['success'] = diplomas.length;
+  // Si on n'a pas identifié le type de diplôme, regarder davantage dans le contenu
+  if (!mapping.containsKey('type')) {
+    for (int col = 0; col < rows.first.length; col++) {
+      if (mapping.containsValue(col)) continue;
 
-    return ImportResult(
-      successRecords: diplomas,
-      errors: errors,
-      stats: stats,
-      detectedMapping: effectiveMapping,
-    );
-  } catch (e) {
-    errors.add(ImportError(
-      rowIndex: -1,
-      errorType: 'fatal_error',
-      errorMessage: 'Erreur fatale: ${e.toString()}',
-    ));
+      int typeCount = 0;
+      for (final row in dataRows) {
+        if (col < row.length) {
+          final value = row[col]?.toString().toLowerCase().trim() ?? '';
 
-    return ImportResult(
-      successRecords: [],
-      errors: errors,
-      stats: {'total': 0, 'fatal_error': 1},
-      detectedMapping: {},
-    );
+          if (value.contains('licence') ||
+              value.contains('master') ||
+              value.contains('doctorat') ||
+              value.contains('certificat') ||
+              value.contains('attestation') ||
+              value.contains('diplome') ||
+              value.contains('diplôme') ||
+              value.contains('ingenieur') ||
+              value.contains('ingénieur') ||
+              value.contains('brevet') ||
+              value.contains('bac') ||
+              value.contains('dut') ||
+              value.contains('bts')) {
+            typeCount++;
+          }
+        }
+      }
+
+      if (typeCount > dataRows.length / 4) {
+        // Seuil plus bas pour le type
+        mapping['type'] = col;
+        break;
+      }
+    }
   }
 }
 
-// Version corrigée de la méthode d'importation Excel avancée
-ImportResult parseExcelAdvanced(Uint8List bytes, [ImportConfig? config]) {
-  final cfg = config ?? ImportConfig();
-  final errors = <ImportError>[];
-  final stats = <String, int>{
-    'total': 0,
-    'skipped': 0,
-    'invalid': 0,
-    'processed': 0,
-    'success': 0,
-  };
+// Classe principale pour l'importation de fichiers
+class FileImportUtils {
+  // Méthode pour importer un fichier Excel
+  static Future<ImportResult> importExcelFile(
+      Uint8List fileBytes, ImportConfig config) async {
+    try {
+      final excel = Excel.decodeBytes(fileBytes);
+      String sheetName = config.sheetName;
 
-  try {
-    final excel = Excel.decodeBytes(bytes);
-
-    // Sélection intelligente de la feuille
-    Sheet? sheet;
-    if (cfg.sheetName.isNotEmpty && excel.tables.containsKey(cfg.sheetName)) {
-      sheet = excel.tables[cfg.sheetName]!;
-    } else {
-      // Fallback sur l'index si le nom n'est pas spécifié ou introuvable
-      final sheetNames = excel.tables.keys.toList();
-      if (sheetNames.isNotEmpty && cfg.sheetIndex < sheetNames.length) {
-        sheet = excel.tables[sheetNames[cfg.sheetIndex]];
-      } else if (sheetNames.isNotEmpty) {
-        // Sélection automatique de la feuille avec le plus de données
-        Sheet? bestSheet;
-        int maxCells = 0;
-
-        for (final name in sheetNames) {
-          final currentSheet = excel.tables[name]!;
-          final cellCount = currentSheet.maxCols * currentSheet.maxRows;
-          if (cellCount > maxCells) {
-            maxCells = cellCount;
-            bestSheet = currentSheet;
-          }
+      // Si aucune feuille n'est spécifiée, prendre la première
+      if (sheetName.isEmpty) {
+        if (excel.tables.isEmpty) {
+          return ImportResult(successRecords: [], errors: [
+            ImportError(
+                rowIndex: -1,
+                errorType: 'file_error',
+                errorMessage: 'Fichier Excel vide')
+          ], stats: {
+            'processed': 0,
+            'success': 0,
+            'error': 1
+          }, detectedMapping: {});
         }
-        sheet = bestSheet;
-      }
-    }
 
-    if (sheet == null) {
-      return ImportResult(
-        successRecords: [],
-        errors: [
+        // Si l'index de feuille est spécifié et valide, utiliser cet index
+        if (config.sheetIndex >= 0 &&
+            config.sheetIndex < excel.tables.keys.length) {
+          sheetName = excel.tables.keys.elementAt(config.sheetIndex);
+        } else {
+          // Sinon prendre la première feuille
+          sheetName = excel.tables.keys.first;
+        }
+      }
+
+      if (!excel.tables.containsKey(sheetName)) {
+        return ImportResult(successRecords: [], errors: [
           ImportError(
+              rowIndex: -1,
+              errorType: 'sheet_error',
+              errorMessage: 'Feuille "$sheetName" non trouvée')
+        ], stats: {
+          'processed': 0,
+          'success': 0,
+          'error': 1
+        }, detectedMapping: {});
+      }
+
+      final sheet = excel.tables[sheetName]!;
+      final maxCols = sheet.maxCols;
+      final maxRows = sheet.maxRows;
+
+      if (maxRows <= (config.skipHeaderRow ? 1 : 0)) {
+        return ImportResult(successRecords: [], errors: [
+          ImportError(
+              rowIndex: -1,
+              errorType: 'data_error',
+              errorMessage: 'Aucune donnée trouvée')
+        ], stats: {
+          'processed': 0,
+          'success': 0,
+          'error': 1
+        }, detectedMapping: {});
+      }
+
+      // Convertir la feuille en liste de listes
+      final data = <List<dynamic>>[];
+      for (int i = 0; i < maxRows; i++) {
+        final rowData = <dynamic>[];
+        for (int j = 0; j < maxCols; j++) {
+          final cell = sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: j, rowIndex: i));
+          var value = cell.value;
+
+          // Traitement spécifique pour les dates dans Excel
+          if (value is DateTime) {
+            value =
+                '${value.day.toString().padLeft(2, '0')}/${value.month.toString().padLeft(2, '0')}/${value.year}';
+          }
+
+          rowData.add(value);
+        }
+        data.add(rowData);
+      }
+
+      // Passer à l'analyse des données
+      return _processData(data, config);
+    } catch (e) {
+      return ImportResult(successRecords: [], errors: [
+        ImportError(
             rowIndex: -1,
-            errorType: 'no_sheet_found',
-            errorMessage: 'Aucune feuille valide trouvée dans le fichier Excel',
-          )
-        ],
-        stats: {'total': 0, 'no_sheet': 1},
-        detectedMapping: {},
-      );
+            errorType: 'excel_error',
+            errorMessage:
+                'Erreur lors de la lecture du fichier Excel: ${e.toString()}')
+      ], stats: {
+        'processed': 0,
+        'success': 0,
+        'error': 1
+      }, detectedMapping: {});
     }
+  }
 
-    // Extraction des données en liste de listes
-    final rows = <List<dynamic>>[];
-    int rowCount = 0;
+  // Méthode pour importer un fichier CSV
+  static Future<ImportResult> importCsvFile(
+      Uint8List fileBytes, ImportConfig config) async {
+    try {
+      // Essayer d'abord avec l'encodage UTF-8
+      String csvString = utf8.decode(fileBytes);
 
-    for (int rowIndex = 0; rowIndex < sheet.maxRows; rowIndex++) {
-      final row = <dynamic>[];
-      bool isRowEmpty = true;
+      // Détecter le séparateur le plus probable
+      List<String> possibleDelimiters = [',', ';', '\t', '|'];
+      String delimiter = ',';
+      int maxDelimiterCount = 0;
 
-      for (int colIndex = 0; colIndex < sheet.maxCols; colIndex++) {
-        final cell = sheet.cell(CellIndex.indexByColumnRow(
-          columnIndex: colIndex,
-          rowIndex: rowIndex,
-        ));
+      // Prendre les 5 premières lignes pour l'analyse
+      final firstLines = csvString.split('\n').take(5).join('\n');
 
-        final value = cell.value;
-        if (value != null && value.toString().trim().isNotEmpty) {
-          isRowEmpty = false;
-        }
-        row.add(value?.toString() ?? '');
-      }
+      for (final delim in possibleDelimiters) {
+        final count = '\n'.allMatches(firstLines).length > 0
+            ? firstLines
+                .split('\n')
+                .where((line) => line.contains(delim))
+                .length
+            : firstLines.contains(delim)
+                ? 1
+                : 0;
 
-      if (!isRowEmpty) {
-        rows.add(row);
-        rowCount++;
-      }
-    }
-
-    stats['total'] = rowCount;
-
-    // Auto-détection améliorée des colonnes
-    Map<String, int> effectiveMapping;
-    if (cfg.autoDetectColumns) {
-      effectiveMapping = detectColumnMapping(rows, cfg);
-      stats['detected_columns'] = effectiveMapping.length;
-    } else {
-      effectiveMapping = cfg.columnMapping ?? {};
-    }
-
-    // Traitement amélioré pour assurer une meilleure détection des colonnes
-    // Si les colonnes essentielles ne sont pas détectées, tenter une détection plus poussée
-    if (!effectiveMapping.containsKey('nom') ||
-        !effectiveMapping.containsKey('numero')) {
-      // Analyse des en-têtes de manière plus permissive
-      if (rows.isNotEmpty) {
-        final headers =
-            rows.first.map((cell) => cell.toString().trim()).toList();
-
-        // Recherche directe par des expressions régulières plus souples
-        for (int i = 0; i < headers.length; i++) {
-          final header = headers[i].toLowerCase();
-
-          // Détection du nom
-          if (!effectiveMapping.containsKey('nom') &&
-              (RegExp(r'nom|name|family|surname', caseSensitive: false)
-                  .hasMatch(header)) &&
-              !RegExp(r'prenom|first|given', caseSensitive: false)
-                  .hasMatch(header)) {
-            effectiveMapping['nom'] = i;
-          }
-
-          // Détection du prénom
-          if (!effectiveMapping.containsKey('prenom') &&
-              RegExp(r'prenom|prénom|first|given', caseSensitive: false)
-                  .hasMatch(header)) {
-            effectiveMapping['prenom'] = i;
-          }
-
-          // Détection du numéro de diplôme (avec des critères plus larges)
-          if (!effectiveMapping.containsKey('numero') &&
-              (RegExp(r'num[éeè]ro|n[°o]|diploma|diplome|diplôme|reference|ref',
-                      caseSensitive: false)
-                  .hasMatch(header))) {
-            effectiveMapping['numero'] = i;
-          }
-
-          // Détection de l'établissement
-          if (!effectiveMapping.containsKey('etablissement') &&
-              RegExp(r'[ée]tabl|[ée]cole|univ|instit|school|college',
-                      caseSensitive: false)
-                  .hasMatch(header)) {
-            effectiveMapping['etablissement'] = i;
-          }
-
-          // Détection de la filière
-          if (!effectiveMapping.containsKey('filiere') &&
-              RegExp(r'fili[èe]re|sp[ée]cialit[ée]|option|major|field|domaine',
-                      caseSensitive: false)
-                  .hasMatch(header)) {
-            effectiveMapping['filiere'] = i;
-          }
-
-          // Détection de l'année
-          if (!effectiveMapping.containsKey('annee') &&
-              RegExp(r'ann[ée]e|year|session|promotion|obtention',
-                      caseSensitive: false)
-                  .hasMatch(header)) {
-            effectiveMapping['annee'] = i;
-          }
-
-          // Détection de la mention
-          if (!effectiveMapping.containsKey('mention') &&
-              RegExp(r'mention|grade|honor|distinction', caseSensitive: false)
-                  .hasMatch(header)) {
-            effectiveMapping['mention'] = i;
-          }
-
-          // Détection de la date de naissance
-          if (!effectiveMapping.containsKey('date_naissance') &&
-              RegExp(r'date.*nai|birth|dob|n[ée]', caseSensitive: false)
-                  .hasMatch(header)) {
-            effectiveMapping['date_naissance'] = i;
-          }
-
-          // Détection de la date d'obtention
-          if (!effectiveMapping.containsKey('date_obtention') &&
-              RegExp(r'date.*obt|date.*dipl|graduation|issue',
-                      caseSensitive: false)
-                  .hasMatch(header)) {
-            effectiveMapping['date_obtention'] = i;
-          }
-
-          // Détection du sexe/genre
-          if (!effectiveMapping.containsKey('sexe') &&
-              RegExp(r'sexe|gender|sex', caseSensitive: false)
-                  .hasMatch(header)) {
-            effectiveMapping['sexe'] = i;
-          }
-
-          // Détection du matricule/id
-          if (!effectiveMapping.containsKey('matricule') &&
-              RegExp(r'matric|id|code.*[ée]tudiant', caseSensitive: false)
-                  .hasMatch(header)) {
-            effectiveMapping['matricule'] = i;
-          }
-
-          // Détection du département
-          if (!effectiveMapping.containsKey('departement') &&
-              RegExp(r'd[ée]part|division|service|unit', caseSensitive: false)
-                  .hasMatch(header)) {
-            effectiveMapping['departement'] = i;
-          }
+        if (count > maxDelimiterCount) {
+          maxDelimiterCount = count;
+          delimiter = delim;
         }
       }
-    }
 
-    // Vérification des colonnes requises
-    final missingRequiredColumns = cfg.requiredColumns
-        .where((col) => !effectiveMapping.containsKey(col))
-        .toList();
+      // Parser le CSV avec le séparateur détecté
+      final rows = const CsvToListConverter()
+          .convert(csvString, fieldDelimiter: delimiter);
 
-    if (missingRequiredColumns.isNotEmpty && !cfg.allowPartialData) {
-      errors.add(ImportError(
-        rowIndex: -1,
-        errorType: 'missing_required_columns',
-        errorMessage:
-            'Colonnes requises non trouvées: ${missingRequiredColumns.join(", ")}',
-      ));
-      return ImportResult(
-        successRecords: [],
-        errors: errors,
-        stats: {'total': rows.length, 'missing_columns': 1},
-        detectedMapping: effectiveMapping,
-      );
-    }
+      if (rows.isEmpty) {
+        return ImportResult(successRecords: [], errors: [
+          ImportError(
+              rowIndex: -1,
+              errorType: 'csv_error',
+              errorMessage: 'Fichier CSV vide ou mal formaté')
+        ], stats: {
+          'processed': 0,
+          'success': 0,
+          'error': 1
+        }, detectedMapping: {});
+      }
 
-    // Traitement des lignes
-    final dataRows = cfg.skipHeaderRow ? rows.skip(1) : rows;
-    stats['processed'] = dataRows.length;
-
-    final diplomas = <Map<String, dynamic>>[];
-
-    int rowIndex = cfg.skipHeaderRow ? 1 : 0;
-    for (final row in dataRows) {
+      // Passer à l'analyse des données
+      return _processData(rows, config);
+    } catch (e) {
+      // En cas d'erreur d'encodage, essayer avec Latin-1
       try {
-        rowIndex++;
-        if (row.isEmpty) continue;
+        String csvString = latin1.decode(fileBytes);
+        final rows =
+            const CsvToListConverter().convert(csvString, fieldDelimiter: ';');
 
-        // Extraction des valeurs selon le mapping
-        final record = <String, dynamic>{};
-        bool hasValidationError = false;
+        if (rows.isEmpty) {
+          return ImportResult(successRecords: [], errors: [
+            ImportError(
+                rowIndex: -1,
+                errorType: 'csv_error',
+                errorMessage: 'Fichier CSV vide ou mal formaté')
+          ], stats: {
+            'processed': 0,
+            'success': 0,
+            'error': 1
+          }, detectedMapping: {});
+        }
 
-        effectiveMapping.forEach((field, index) {
-          try {
-            if (index < row.length) {
-              final rawValue = row[index].toString();
-              final value = cfg.trimValues ? rawValue.trim() : rawValue;
-              record[field] = value;
+        return _processData(rows, config);
+      } catch (e2) {
+        return ImportResult(successRecords: [], errors: [
+          ImportError(
+              rowIndex: -1,
+              errorType: 'csv_error',
+              errorMessage:
+                  'Erreur lors de la lecture du fichier CSV: ${e2.toString()}')
+        ], stats: {
+          'processed': 0,
+          'success': 0,
+          'error': 1
+        }, detectedMapping: {});
+      }
+    }
+  }
 
-              // Validation
-              final bool isStrict = cfg.requiredColumns.contains(field);
-              final validationError = DataValidator.validateDataType(
-                  field, value,
-                  strict: isStrict);
+  // Méthode pour traiter les données importées
+  static Future<ImportResult> _processData(
+      List<List<dynamic>> rows, ImportConfig config) async {
+    // Statistiques d'importation
+    final stats = {'processed': 0, 'success': 0, 'error': 0};
+    final errors = <ImportError>[];
+    final successRecords = <Map<String, dynamic>>[];
 
-              if (validationError.isNotEmpty) {
-                errors.add(ImportError(
-                  rowIndex: rowIndex,
-                  errorType: 'validation_error',
-                  errorMessage: validationError,
-                  rawData: row,
-                ));
-                hasValidationError = true;
-              }
-            } else if (cfg.requiredColumns.contains(field) &&
-                !cfg.allowPartialData) {
+    try {
+      // Si pas de données, retourner une erreur
+      if (rows.isEmpty) {
+        return ImportResult(successRecords: [], errors: [
+          ImportError(
+              rowIndex: -1,
+              errorType: 'data_error',
+              errorMessage: 'Aucune donnée à traiter')
+        ], stats: {
+          'processed': 0,
+          'success': 0,
+          'error': 1
+        }, detectedMapping: {});
+      }
+
+      // Détecter ou utiliser le mapping de colonnes
+      Map<String, int> columnMapping = config.columnMapping ?? {};
+
+      if (config.autoDetectColumns || columnMapping.isEmpty) {
+        columnMapping = detectColumnMapping(rows, config);
+      }
+
+      // Vérifier que les colonnes requises sont présentes
+      final missingColumns = <String>[];
+      for (final requiredCol in config.requiredColumns) {
+        if (!columnMapping.containsKey(requiredCol)) {
+          missingColumns.add(requiredCol);
+        }
+      }
+
+      if (missingColumns.isNotEmpty && !config.allowPartialData) {
+        return ImportResult(successRecords: [], errors: [
+          ImportError(
+              rowIndex: -1,
+              errorType: 'mapping_error',
+              errorMessage:
+                  'Colonnes obligatoires non trouvées: ${missingColumns.join(", ")}')
+        ], stats: {
+          'processed': 0,
+          'success': 0,
+          'error': 1
+        }, detectedMapping: columnMapping);
+      }
+
+      // Définir l'index de départ en fonction de skipHeaderRow
+      final startIndex = config.skipHeaderRow ? 1 : 0;
+
+      // Traiter les lignes
+      for (int i = startIndex; i < rows.length; i++) {
+        stats['processed'] = (stats['processed'] ?? 0) + 1;
+        final row = rows[i];
+        final Map<String, dynamic> record = {};
+        bool hasError = false;
+
+        // Extraire et valider les données de chaque champ mappé
+        columnMapping.forEach((field, colIndex) {
+          if (colIndex >= 0 && colIndex < row.length) {
+            String rawValue = row[colIndex]?.toString() ?? '';
+            if (config.trimValues) {
+              rawValue = rawValue.trim();
+            }
+
+            // Valider le format des données
+            final validationError =
+                DataValidator.validateDataType(field, rawValue);
+            if (validationError.isNotEmpty) {
               errors.add(ImportError(
-                rowIndex: rowIndex,
-                errorType: 'required_field_missing',
-                errorMessage: 'Colonne requise hors limite: $field',
+                rowIndex: i,
+                errorType: 'validation_error',
+                errorMessage: validationError,
                 rawData: row,
               ));
-              hasValidationError = true;
+              hasError = true;
             }
-          } catch (e) {
-            errors.add(ImportError(
-              rowIndex: rowIndex,
-              errorType: 'cell_processing_error',
-              errorMessage:
-                  'Erreur de traitement de cellule pour $field: ${e.toString()}',
-              rawData: row,
-            ));
-            hasValidationError = true;
+
+            record[field] = rawValue;
           }
         });
 
-        if (hasValidationError && !cfg.allowPartialData) {
-          stats['invalid'] = (stats['invalid'] ?? 0) + 1;
-          continue;
-        }
-
-        // Ajout des champs calculés et timestamps
-        record['created_at'] = Timestamp.now();
-        record['nom_normalized'] = normalizeText(record['nom'] ?? '');
-        record['numero_normalized'] = normalizeText(record['numero'] ?? '');
-
-        // Traitement additionnel pour améliorer la qualité des données
-        if (record.containsKey('date_naissance')) {
-          final dateStr = record['date_naissance'].toString();
-          record['date_naissance'] = standardizeDate(dateStr);
-        }
-
-        if (record.containsKey('date_obtention')) {
-          final dateStr = record['date_obtention'].toString();
-          record['date_obtention'] = standardizeDate(dateStr);
-        }
-
-        // Normaliser le format de l'année (si présent)
-        if (record.containsKey('annee')) {
-          record['annee'] = standardizeYear(record['annee'].toString());
-        }
-
-        diplomas.add(record);
-      } catch (e) {
-        errors.add(ImportError(
-          rowIndex: rowIndex,
-          errorType: 'processing_error',
-          errorMessage: 'Erreur de traitement: ${e.toString()}',
-          rawData: row,
-        ));
-        stats['invalid'] = (stats['invalid'] ?? 0) + 1;
-      }
-    }
-
-    stats['success'] = diplomas.length;
-
-    return ImportResult(
-      successRecords: diplomas,
-      errors: errors,
-      stats: stats,
-      detectedMapping: effectiveMapping,
-    );
-  } catch (e) {
-    errors.add(ImportError(
-      rowIndex: -1,
-      errorType: 'fatal_error',
-      errorMessage: 'Erreur fatale: ${e.toString()}',
-    ));
-
-    return ImportResult(
-      successRecords: [],
-      errors: errors,
-      stats: {'total': 0, 'fatal_error': 1},
-      detectedMapping: {},
-    );
-  }
-}
-
-// Fonction utilitaire pour standardiser les formats de date
-String standardizeDate(String dateStr) {
-  if (dateStr.isEmpty) return dateStr;
-
-  try {
-    // Nettoyage initial
-    dateStr = dateStr.trim();
-
-    // Détection du format
-    RegExp frFormat = RegExp(r'^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$');
-    RegExp enFormat = RegExp(r'^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})$');
-    RegExp shortFormat = RegExp(r'^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2})$');
-
-    if (frFormat.hasMatch(dateStr)) {
-      // Format français (JJ/MM/AAAA)
-      final match = frFormat.firstMatch(dateStr)!;
-      int day = int.parse(match.group(1)!);
-      int month = int.parse(match.group(2)!);
-      int year = int.parse(match.group(3)!);
-
-      // Ajustement pour années à 2 chiffres
-      if (year < 100) {
-        year = year < 50 ? 2000 + year : 1900 + year;
-      }
-
-      // Validation des valeurs
-      if (day > 31 || month > 12) return dateStr; // Garder tel quel si invalide
-
-      return '$day/$month/$year';
-    } else if (enFormat.hasMatch(dateStr)) {
-      // Format anglais/ISO (AAAA-MM-JJ)
-      final match = enFormat.firstMatch(dateStr)!;
-      int year = int.parse(match.group(1)!);
-      int month = int.parse(match.group(2)!);
-      int day = int.parse(match.group(3)!);
-
-      // Validation des valeurs
-      if (day > 31 || month > 12) return dateStr; // Garder tel quel si invalide
-
-      return '$day/$month/$year';
-    } else if (shortFormat.hasMatch(dateStr)) {
-      // Format court (JJ/MM/AA)
-      final match = shortFormat.firstMatch(dateStr)!;
-      int day = int.parse(match.group(1)!);
-      int month = int.parse(match.group(2)!);
-      int year = int.parse(match.group(3)!);
-
-      // Ajustement pour années à 2 chiffres
-      year = year < 50 ? 2000 + year : 1900 + year;
-
-      // Validation des valeurs
-      if (day > 31 || month > 12) return dateStr; // Garder tel quel si invalide
-
-      return '$day/$month/$year';
-    }
-  } catch (e) {
-    // En cas d'erreur, retourner la valeur d'origine
-  }
-
-  return dateStr;
-}
-
-// Fonction utilitaire pour standardiser les formats d'année
-String standardizeYear(String yearStr) {
-  if (yearStr.isEmpty) return yearStr;
-
-  try {
-    // Nettoyage initial
-    yearStr = yearStr.trim();
-
-    // Extraction d'une année à 4 chiffres
-    RegExp yearPattern = RegExp(r'(19|20)\d{2}');
-    final match = yearPattern.firstMatch(yearStr);
-
-    if (match != null) {
-      return match.group(0)!;
-    }
-
-    // Tentative de conversion numérique simple
-    if (RegExp(r'^\d+$').hasMatch(yearStr)) {
-      int year = int.parse(yearStr);
-      if (year >= 1900 && year <= 2100) {
-        return year.toString();
-      } else if (year >= 0 && year <= 99) {
-        // Année à 2 chiffres
-        year = year < 50 ? 2000 + year : 1900 + year;
-        return year.toString();
-      }
-    }
-
-    // Recherche d'année académique (2022/2023)
-    RegExp academicYearPattern = RegExp(r'(19|20)\d{2}[/\-](19|20)\d{2}');
-    final academicMatch = academicYearPattern.firstMatch(yearStr);
-    if (academicMatch != null) {
-      return academicMatch.group(0)!;
-    }
-  } catch (e) {
-    // En cas d'erreur, retourner la valeur d'origine
-  }
-
-  return yearStr;
-}
-
-// Fonction principale pour traiter tous types de fichiers (Excel, CSV)
-ImportResult parseFile(Uint8List bytes, String fileName,
-    [ImportConfig? config]) {
-  // Déterminer le type de fichier par l'extension
-  final extension = fileName.split('.').last.toLowerCase();
-
-  try {
-    switch (extension) {
-      case 'xlsx':
-      case 'xls':
-        return parseExcelAdvanced(bytes, config);
-
-      case 'csv':
-        // Convertir les bytes en String pour le CSV
-        final csvContent = utf8.decode(bytes);
-        return parseCsvAdvanced(csvContent, config);
-
-      default:
-        // Tenter de détecter automatiquement le type de fichier
-        try {
-          // Essayer d'abord comme Excel
-          return parseExcelAdvanced(bytes, config);
-        } catch (e) {
-          // Si échec, essayer comme CSV
-          try {
-            final csvContent = utf8.decode(bytes);
-            return parseCsvAdvanced(csvContent, config);
-          } catch (csvError) {
-            // Si les deux échouent, renvoyer une erreur
-            return ImportResult(
-              successRecords: [],
-              errors: [
-                ImportError(
-                  rowIndex: -1,
-                  errorType: 'unsupported_file_format',
-                  errorMessage:
-                      'Format de fichier non pris en charge: $extension. Veuillez utiliser un fichier Excel (.xlsx, .xls) ou CSV.',
-                )
-              ],
-              stats: {'total': 0, 'format_error': 1},
-              detectedMapping: {},
-            );
+        // Vérifier que les champs requis sont présents
+        bool missingRequired = false;
+        for (final reqField in config.requiredColumns) {
+          if (!record.containsKey(reqField) ||
+              (record[reqField] is String &&
+                  (record[reqField] as String).isEmpty)) {
+            errors.add(ImportError(
+              rowIndex: i,
+              errorType: 'required_field_missing',
+              errorMessage:
+                  'Champ obligatoire "$reqField" manquant à la ligne ${i + 1}',
+              rawData: row,
+            ));
+            missingRequired = true;
+            break;
           }
         }
+
+        if (missingRequired) {
+          hasError = true;
+        }
+
+        // Si tout est valide, ajouter aux enregistrements réussis
+        if (!hasError) {
+          // Ajouter un identifiant interne pour le suivi
+          record['_importId'] =
+              'imp_${DateTime.now().millisecondsSinceEpoch}_$i';
+          successRecords.add(record);
+          stats['success'] = (stats['success'] ?? 0) + 1;
+        } else {
+          stats['error'] = (stats['error'] ?? 0) + 1;
+        }
+      }
+
+      return ImportResult(
+        successRecords: successRecords,
+        errors: errors,
+        stats: stats,
+        detectedMapping: columnMapping,
+      );
+    } catch (e) {
+      // Erreur inattendue
+      return ImportResult(
+        successRecords: successRecords,
+        errors: [
+          ...errors,
+          ImportError(
+            rowIndex: -1,
+            errorType: 'processing_error',
+            errorMessage:
+                'Erreur lors du traitement des données: ${e.toString()}',
+          )
+        ],
+        stats: stats,
+        detectedMapping: config.columnMapping ?? {},
+      );
     }
-  } catch (e) {
-    return ImportResult(
-      successRecords: [],
-      errors: [
-        ImportError(
-          rowIndex: -1,
-          errorType: 'parsing_error',
-          errorMessage: 'Erreur lors de l\'analyse du fichier: ${e.toString()}',
-        )
-      ],
-      stats: {'total': 0, 'parse_error': 1},
-      detectedMapping: {},
-    );
+  }
+
+  // Fonction pour sauvegarder les enregistrements dans Firestore
+  static Future<Map<String, dynamic>> saveDiplomas(
+      List<Map<String, dynamic>> diplomaData, String importBatchId) async {
+    final stats = {'processed': 0, 'success': 0, 'error': 0, 'existing': 0};
+    final errors = <Map<String, dynamic>>[];
+    final FirebaseFirestore db = FirebaseFirestore.instance;
+    final batch = db.batch();
+    final batchTimestamp = DateTime.now();
+    final batchResults = <String, dynamic>{};
+
+    try {
+      final existingNums = <String>{};
+
+      // Première passe pour récupérer les numéros existants
+      for (final diploma in diplomaData) {
+        final numero = diploma['numero']?.toString().trim() ?? '';
+        if (numero.isNotEmpty) {
+          existingNums.add(numero.toLowerCase());
+        }
+      }
+
+      // Créer un batch pour les insertions
+      for (final diploma in diplomaData) {
+        stats['processed'] = (stats['processed'] ?? 0) + 1;
+        try {
+          final numero = diploma['numero']?.toString().trim() ?? '';
+
+          if (numero.isEmpty) {
+            errors
+                .add({'data': diploma, 'error': 'Numéro de diplôme manquant'});
+            stats['error'] = (stats['error'] ?? 0) + 1;
+            continue;
+          }
+
+          // Créer une représentation normalisée pour la recherche
+          final normalizedData = <String, dynamic>{
+            'numero': numero,
+            'nomNormalise': normalizeText(diploma['nom'] ?? ''),
+            'prenomNormalise': normalizeText(diploma['prenom'] ?? ''),
+            'dateCreation': batchTimestamp,
+            'importBatchId': importBatchId,
+            'status': 'active',
+          };
+
+          // Copier toutes les données d'origine
+          diploma.forEach((key, value) {
+            if (key != '_importId') {
+              normalizedData[key] = value;
+            }
+          });
+
+          // Si date_naissance ou date_obtention existe, vérifier le format
+          if (diploma.containsKey('date_naissance')) {
+            final dateStr = diploma['date_naissance'].toString().trim();
+            if (dateStr.isNotEmpty) {
+              try {
+                // Essayer de normaliser la date au format DD/MM/YYYY
+                final parts = dateStr.split(RegExp(r'[/.-]'));
+                if (parts.length == 3) {
+                  // Détecter l'ordre année/mois/jour vs jour/mois/année
+                  if (parts[0].length == 4) {
+                    // Format YYYY-MM-DD
+                    normalizedData['date_naissance'] =
+                        '${parts[2]}/${parts[1]}/${parts[0]}';
+                  } else {
+                    // Format DD/MM/YYYY ou DD-MM-YYYY
+                    normalizedData['date_naissance'] =
+                        '${parts[0]}/${parts[1]}/${parts[2]}';
+                  }
+                }
+              } catch (e) {
+                // Conserver la valeur originale
+              }
+            }
+          }
+
+          if (diploma.containsKey('date_obtention')) {
+            final dateStr = diploma['date_obtention'].toString().trim();
+            if (dateStr.isNotEmpty) {
+              try {
+                // Même logique que pour date_naissance
+                final parts = dateStr.split(RegExp(r'[/.-]'));
+                if (parts.length == 3) {
+                  if (parts[0].length == 4) {
+                    normalizedData['date_obtention'] =
+                        '${parts[2]}/${parts[1]}/${parts[0]}';
+                  } else {
+                    normalizedData['date_obtention'] =
+                        '${parts[0]}/${parts[1]}/${parts[2]}';
+                  }
+                }
+              } catch (e) {
+                // Conserver la valeur originale
+              }
+            }
+          }
+
+          // Ajouter des champs de recherche pour faciliter la recherche floue
+          final searchableFields = <String>[];
+          if (diploma['nom'] != null)
+            searchableFields.add(normalizeText(diploma['nom']));
+          if (diploma['prenom'] != null)
+            searchableFields.add(normalizeText(diploma['prenom']));
+          if (diploma['numero'] != null)
+            searchableFields.add(normalizeText(diploma['numero']));
+          if (diploma['type'] != null)
+            searchableFields.add(normalizeText(diploma['type']));
+          if (diploma['etablissement'] != null)
+            searchableFields.add(normalizeText(diploma['etablissement']));
+
+          normalizedData['searchTerms'] = searchableFields;
+
+          // Stocker dans Firestore
+          final docRef = db.collection('diplomas').doc();
+          batch.set(docRef, normalizedData);
+
+          batchResults[diploma['_importId'] ?? docRef.id] = {
+            'id': docRef.id,
+            'status': 'pending'
+          };
+
+          stats['success'] = (stats['success'] ?? 0) + 1;
+        } catch (e) {
+          errors.add({'data': diploma, 'error': e.toString()});
+          stats['error'] = (stats['error'] ?? 0) + 1;
+        }
+      }
+
+      // Exécuter le batch
+      await batch.commit();
+
+      // Mettre à jour les résultats
+      batchResults.forEach((key, value) {
+        batchResults[key]['status'] = 'success';
+      });
+
+      return {
+        'status': 'success',
+        'stats': stats,
+        'errors': errors,
+        'results': batchResults
+      };
+    } catch (e) {
+      return {
+        'status': 'error',
+        'message': e.toString(),
+        'stats': stats,
+        'errors': errors,
+        'results': batchResults
+      };
+    }
   }
 }
